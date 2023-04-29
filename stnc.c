@@ -1,3 +1,12 @@
+/* use:
+compile the code with:
+gcc stnc.c -o stnc
+run as sever:
+./stnc -s 12345  (start the server on port 12345)
+run as client:
+./sttnc -c 127.0.0.1 12345 (contect to the server running at localhost 0n port 12345)
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -95,11 +104,11 @@ int main(int argc, char *argv[]) {
     } else if (strcmp(argv[1], "-c") == 0) {
         if (argc < 4)
             error("ERROR no IP address or port provided for client");
-char *ip = argv[2];
-int port = atoi(argv[3]);
-run_client(ip, port);
-} else {
-error("ERROR invalid arguments");
-}
-return 0;
+        char *ip = argv[2];
+        int port = atoi(argv[3]);
+        run_client(ip, port);
+    } else {
+        error("ERROR invalid arguments");
+    }
+    return 0;
 }
