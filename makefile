@@ -13,5 +13,8 @@ cleint_b.o: cleint_b.c cleint_b.h
 
 .PHONY = clean all 
 
+
+
+
 clean:
 	rm -f *.o *.a chat
