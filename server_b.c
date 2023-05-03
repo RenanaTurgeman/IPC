@@ -11,7 +11,7 @@
 
 #define SERVER_PORT 8080
 #define BUFFER_SIZE 1024
-#define SERVER_SOCKET_PATH "/tmp/my_server_socket"
+#define SERVER_SOCKET_PATH "echo_socket"
 
 
 int ipv4_tcp(){
@@ -301,6 +301,7 @@ int uds_dgram() {
     serv_addr.sun_family = AF_UNIX;
     strncpy(serv_addr.sun_path, SERVER_SOCKET_PATH, sizeof(serv_addr.sun_path) - 1);
 
+    // unlink(local.sun_path);
     // Bind the socket to the server address
     if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
         perror("bind");

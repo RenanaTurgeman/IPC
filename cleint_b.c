@@ -12,7 +12,7 @@
 // #define SERVER_IP "::1"
 #define SERVER_PORT 8080
 #define BUFFER_SIZE 1024
-#define SERVER_SOCKET_PATH "/tmp/server_socket"
+#define SERVER_SOCKET_PATH "echo_socket"
 
 int ipv4_tcp(){
     int sockfd, filefd, nbytes;
