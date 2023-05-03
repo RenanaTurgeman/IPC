@@ -6,10 +6,13 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <fcntl.h>
-
+#include <sys/types.h>
+#include <sys/un.h>
 
 #define SERVER_PORT 8080
 #define BUFFER_SIZE 1024
+#define SERVER_SOCKET_PATH "/tmp/my_server_socket"
+
 
 int ipv4_tcp(){
      int sockfd, connfd, filefd, nbytes;
@@ -280,12 +283,71 @@ int ipv6_udp() {
     return 0;
 }
 
+int uds_dgram() {
+    int sockfd, filefd, nbytes;
+    struct sockaddr_un serv_addr, cli_addr;
+    socklen_t cli_len;
+    char buffer[BUFSIZ];
+
+    // Create a socket for the server
+    sockfd = socket(AF_UNIX, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        perror("socket");
+        exit(EXIT_FAILURE);
+    }
+
+    // Set up the server address
+    memset(&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sun_family = AF_UNIX;
+    strncpy(serv_addr.sun_path, SERVER_SOCKET_PATH, sizeof(serv_addr.sun_path) - 1);
+
+    // Bind the socket to the server address
+    if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
+        perror("bind");
+        exit(EXIT_FAILURE);
+    }
+
+    // Open a file for writing
+    filefd = open("received_file.txt", O_CREAT | O_WRONLY, 0644);
+    if (filefd < 0) {
+        perror("open");
+        exit(EXIT_FAILURE);
+    }
+
+    // Receive data from the client and write it to the file
+    cli_len = sizeof(cli_addr);
+    while ((nbytes = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *) &cli_addr, &cli_len)) > 0) {
+        if (write(filefd, buffer, nbytes) != nbytes) {
+            perror("write");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // Close the file and socket
+    close(filefd);
+    close(sockfd);
+
+    // Print the contents of the file to the screen
+    FILE *fp = fopen("received_file.txt", "r");
+    if (fp == NULL) {
+        perror("fopen");
+        exit(EXIT_FAILURE);
+    }
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        printf("%s", buffer);
+    }
+    fclose(fp);
+
+    return 0;
+}
+
 
 int main(int argc, char *argv[]) {
     // ipv4_tcp();
     // ipv4_udp();
     // ipv6_tcp();
-    ipv6_udp();
+    // ipv6_udp();
+    uds_dgram();
 
     return 0;
 }
