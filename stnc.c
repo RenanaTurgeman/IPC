@@ -119,16 +119,15 @@ void run_server(int port) {
 
     char buffer[BUFFER_SIZE];
     while (1) {
-        // Wait for events
         if (poll(fds, 2, -1) < 0)
             error("ERROR on poll");
         
          else
         {
-            // Check if input from keyboard is available
-            if (fds[1].revents & POLLIN)
+            int pollin_happened_1 = pfds[1].revents & POLLIN; 
+
+            if (pollin_happened_1)
             {
-                // Read input from keyboard
                 fgets(buffer, BUFFER_SIZE, stdin);
                 // buffer[strlen(buffer) - 1] = '\0';
 
@@ -139,8 +138,9 @@ void run_server(int port) {
 
             }
 
-            // Check if server socket is readable
-            if (fds[0].revents & POLLIN)
+            int pollin_happened_0 = pfds[0].revents & POLLIN; //from server
+
+            if (pollin_happened_0)
             {
                 // Receive message from server
                 int bytes_received = recv(newsockfd, buffer, BUFFER_SIZE, 0);
