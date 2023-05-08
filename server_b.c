@@ -285,7 +285,7 @@ int ipv6_udp() {
     return 0;
 }
 
-int uds_dgram() {
+int uds_stream() {
     int s, s2, len, fd;
     struct sockaddr_un remote, local = {
             .sun_family = AF_UNIX,
@@ -362,6 +362,69 @@ int uds_dgram() {
     return 0;
 }
 
+int uds_dgram() {
+    int s, len, fd;
+    struct sockaddr_un local = {
+            .sun_family = AF_UNIX,
+    };
+    char buf[1024];
+
+    if ((s = socket(AF_UNIX, SOCK_DGRAM, 0)) == -1) {
+            perror("socket");
+            exit(1);
+    }
+
+    strcpy(local.sun_path, SOCK_PATH);
+    unlink(local.sun_path);
+    len = strlen(local.sun_path) + sizeof(local.sun_family);
+    if (bind(s, (struct sockaddr *)&local, len) == -1) {
+            perror("bind");
+            exit(1);
+    }
+
+    printf("Waiting for a datagram...\n");
+    int file_size;
+    socklen_t slen = sizeof(local);
+    if (recvfrom(s, &file_size, sizeof(file_size), 0, (struct sockaddr *)&local, &slen) == -1) {
+            perror("recvfrom");
+            exit(1);
+    }
+
+    // Read file data from client and save to file
+    if ((fd = open("received_file.txt", O_CREAT|O_WRONLY, 0644)) < 0) {
+            perror("open");
+            exit(1);
+    }
+
+    int total = 0, n;
+    while (total < file_size) {
+            slen = sizeof(local);
+            n = recvfrom(s, buf, sizeof(buf), 0, (struct sockaddr *)&local, &slen);
+            if (n <= 0) {
+                    if (n < 0) perror("recvfrom");
+                    break;
+            }
+
+            if (write(fd, buf, n) < 0) {
+                    perror("write");
+                    break;
+            }
+
+            total += n;
+    }
+
+    close(fd);
+    close(s);
+
+    if (total == file_size) {
+            printf("File transfer completed.\n");
+    } else {
+            printf("File transfer failed.\n");
+    }
+
+    return 0;
+}
+
 
 int main(int argc, char *argv[]) {
     // ipv4_tcp();
@@ -369,6 +432,7 @@ int main(int argc, char *argv[]) {
     // ipv6_tcp();
     // ipv6_udp();
     uds_dgram();
+    // uds_stream();
 
     return 0;
 }

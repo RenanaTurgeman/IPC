@@ -210,7 +210,7 @@ int ipv6_udp(){
     return 0;
 }
 
-int uds_dgram() {
+int uds_stream() {
     int s, len;
     struct sockaddr_un remote = {
             .sun_family = AF_UNIX,
@@ -272,6 +272,53 @@ int uds_dgram() {
     return 0;
 }
 
+int uds_dgram() {
+    int s, len;
+    struct sockaddr_un remote = {
+        .sun_family = AF_UNIX,
+        .sun_path = SOCK_PATH
+    };
+
+    if ((s = socket(AF_UNIX, SOCK_DGRAM, 0)) == -1) {
+        perror("socket");
+        exit(1);
+    }
+
+    // Open the file to send
+    int fd;
+    if ((fd = open("file.txt", O_RDONLY)) < 0) {
+        perror("open");
+        exit(1);
+    }
+
+    // Get file size
+    off_t file_size = lseek(fd, 0, SEEK_END);
+    lseek(fd, 0, SEEK_SET);
+
+    // Send file size to server
+    if (sendto(s, &file_size, sizeof(file_size), 0, (struct sockaddr *)&remote, sizeof(remote)) < 0) {
+        perror("sendto");
+        exit(1);
+    }
+
+    // Send file data to server
+    char buf[1024];
+    int nread;
+    while ((nread = read(fd, buf, sizeof(buf))) > 0) {
+        if (sendto(s, buf, nread, 0, (struct sockaddr *)&remote, sizeof(remote)) < 0) {
+            perror("sendto");
+            exit(1);
+        }
+    }
+
+    close(fd);
+    close(s);
+
+    printf("File sent.\n");
+
+    return 0;
+}
+
 
 int main(int argc, char *argv[]) {
     
@@ -282,5 +329,7 @@ int main(int argc, char *argv[]) {
     // ipv6_tcp();
     // ipv6_udp();
     uds_dgram();
+    // uds_stream();
+
     return 0;
 }
