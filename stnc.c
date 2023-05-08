@@ -111,15 +111,15 @@ void run_server(int port) {
     if (newsockfd < 0)
         error("ERROR on accept");
 
-    struct pollfd fds[2];
-    fds[0].fd = newsockfd;
-    fds[0].events = POLLIN;
-    fds[1].fd = STDIN_FILENO;
-    fds[1].events = POLLIN;
+    struct pollfd pfds[2];
+    pfds[0].fd = newsockfd;
+    pfds[0].events = POLLIN;
+    pfds[1].fd = STDIN_FILENO;
+    pfds[1].events = POLLIN;
 
     char buffer[BUFFER_SIZE];
     while (1) {
-        if (poll(fds, 2, -1) < 0)
+        if (poll(pfds, 2, -1) < 0)
             error("ERROR on poll");
         
          else
