@@ -1,40 +1,123 @@
-int uds_dgram() {
-    int sockfd, filefd, nbytes, n_sent;
-    struct sockaddr_un serv_addr;
-    char buffer[BUFSIZ];
 
-    // Open the file for reading
-    filefd = open("file.txt", O_RDONLY);
-    if (filefd < 0) {
-        perror("open");
-        exit(EXIT_FAILURE);
+int main(int argc, char *argv[]) {
+    if (argc < 2)
+        error("Usage: stnc -s PORT (server) or stnc -c IP PORT (client)");
+
+    if (strcmp(argv[1], "-s") == 0) {
+        if (argc < 3)
+            error("ERROR no port provided for server");
+        int port = atoi(argv[2]);
+        run_server(port); 
+    } else if (strcmp(argv[1], "-c") == 0) {
+        if (argc < 4)
+            error("ERROR no IP address or port provided for client");
+        char *ip = argv[2];
+        int port = atoi(argv[3]);
+        run_client(ip, port);
+    } else {
+        error("ERROR invalid arguments");
     }
-
-    // Create a socket for the client
-    sockfd = socket(AF_UNIX, SOCK_DGRAM, 0);
-    if (sockfd < 0) {
-        perror("socket");
-        exit(EXIT_FAILURE);
-    }
-
-    // Set up the server address
-    memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sun_family = AF_UNIX;
-    strncpy(serv_addr.sun_path, SERVER_SOCKET_PATH, sizeof(serv_addr.sun_path) - 1);
-
-    // Read from the file and send to the server
-    while ((nbytes = read(filefd, buffer, sizeof(buffer))) > 0) {
-        n_sent = sendto(sockfd, buffer, nbytes, 0, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
-        if (n_sent < 0) {
-            perror("sendto");
-            exit(EXIT_FAILURE);
-        } else if (n_sent != nbytes) {
-            fprintf(stderr, "sendto: Sent %d bytes instead of %d bytes\n", n_sent, nbytes);
-        }
-    }
-
-    // Close the file and socket
-    close(filefd);
-    close(sockfd);
     return 0;
+}
+
+
+
+
+
+
+
+int main(int argc, char *argv[]) {
+if (argc < 2) {
+printf("Usage: stnc [options]\n");
+printf("For help, use stnc -h\n");
+exit(0);
+}
+int isServer = 0;
+int isClient = 0;
+int quietMode = 0;
+int performTest = 0;
+char *address = NULL;
+char *port = NULL;
+char *type = NULL;
+char *param = NULL;
+
+int opt;
+while ((opt = getopt(argc, argv, "sqhsc:p:")) != -1) {
+    switch (opt) {
+        case 's':
+            isServer = 1;
+            break;
+        case 'c':
+            isClient = 1;
+            address = strtok(optarg, ":");
+            port = strtok(NULL, ":");
+            break;
+        case 'p':
+            performTest = 1;
+            type = strtok(optarg, " ");
+            param = strtok(NULL, " ");
+            break;
+        case 'q':
+            quietMode = 1;
+            break;
+        case 'h':
+            printf("Usage:\n");
+            printf("Server: stnc -s PORT -p -q\n");
+            printf("Client: stnc -c IP:PORT -p <type> <param>\n");
+            printf("Options:\n");
+            printf("  -s              Start server\n");
+            printf("  -c IP:PORT      Connect to server\n");
+            printf("  -p TYPE PARAM   Perform performance test with TYPE and PARAM\n");
+            printf("  -q              Quiet mode, only show test results\n");
+            printf("  -h              Show this help message\n");
+            exit(0);
+        default:
+            printf("Invalid argument. Use stnc -h for help.\n");
+            exit(1);
+    }
+}
+
+if (!isServer && !isClient) {
+    printf("Invalid argument. Use stnc -h for help.\n");
+    exit(1);
+}
+
+if (isServer) {
+    if (!port || !performTest) {
+        printf("Invalid argument. Use stnc -h for help.\n");
+        exit(1);
+    }
+    server(atoi(port), performTest, quietMode);
+} else {
+    if (!address || !port || !performTest) {
+        printf("Invalid argument. Use stnc -h for help.\n");
+        exit(1);
+    }
+    client(address, atoi(port), type, param, performTest);
+}
+
+return 0;
+}
+
+void generate_data(char *data, size_t size) {
+    for(size_t i = 0; i < size; i++) {
+        data[i] = i % 256;
+    }
+}
+
+unsigned long long calculate_checksum(char *data, size_t size) {
+    unsigned long long sum = 0;
+    for(size_t i = 0; i < size; i++) {
+        sum += (unsigned char) data[i];
+    }
+    return sum;
+}
+
+unsigned long long get_current_time_ms() {
+    struct timespec ts;
+    if(clock_gettime(CLOCK_MONOTONIC, &ts) == -1) {
+        perror("clock_gettime");
+        exit(EXIT_FAILURE);
+    }
+    return (unsigned long long) ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 }
