@@ -7,12 +7,15 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/un.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define SERVER_IP "127.0.0.1"
 // #define SERVER_IP "::1"
 #define SERVER_PORT 8080
 #define BUFFER_SIZE 1024
-#define SERVER_SOCKET_PATH "echo_socket"
+#define SOCK_PATH "echo_socket"
 
 int ipv4_tcp(){
     int sockfd, filefd, nbytes;
@@ -208,43 +211,101 @@ int ipv6_udp(){
 }
 
 int uds_dgram() {
-    int sockfd, filefd, nbytes, n_sent;
-    struct sockaddr_un serv_addr;
-    char buffer[BUFSIZ];
+    // int sockfd, filefd, nbytes, n_sent;
+    // struct sockaddr_un serv_addr;
+    // char buffer[BUFSIZ];
 
-    // Open the file for reading
-    filefd = open("file.txt", O_RDONLY);
-    if (filefd < 0) {
-        perror("open");
-        exit(EXIT_FAILURE);
+    // // Open the file for reading
+    // filefd = open("file.txt", O_RDONLY);
+    // if (filefd < 0) {
+    //     perror("open");
+    //     exit(EXIT_FAILURE);
+    // }
+
+    // // Create a socket for the client
+    // sockfd = socket(AF_UNIX, SOCK_DGRAM, 0);
+    // if (sockfd < 0) {
+    //     perror("socket");
+    //     exit(EXIT_FAILURE);
+    // }
+
+    // // Set up the server address
+    // memset(&serv_addr, 0, sizeof(serv_addr));
+    // serv_addr.sun_family = AF_UNIX;
+    // strncpy(serv_addr.sun_path, SERVER_SOCKET_PATH, sizeof(serv_addr.sun_path) - 1);
+
+    // // Read from the file and send to the server
+    // while ((nbytes = read(filefd, buffer, sizeof(buffer))) > 0) {
+    //     n_sent = sendto(sockfd, buffer, nbytes, 0, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+    //     if (n_sent < 0) {
+    //         perror("sendto");
+    //         exit(EXIT_FAILURE);
+    //     } else if (n_sent != nbytes) {
+    //         fprintf(stderr, "sendto: Sent %d bytes instead of %d bytes\n", n_sent, nbytes);
+    //     }
+    // }
+
+    // // Close the file and socket
+    // close(filefd);
+    // close(sockfd);
+    int s, len;
+    struct sockaddr_un remote = {
+            .sun_family = AF_UNIX,
+            .sun_path = SOCK_PATH,
+    };
+    char buf[1024];
+
+    if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+            perror("socket");
+            exit(1);
     }
 
-    // Create a socket for the client
-    sockfd = socket(AF_UNIX, SOCK_DGRAM, 0);
-    if (sockfd < 0) {
-        perror("socket");
-        exit(EXIT_FAILURE);
+    len = strlen(remote.sun_path) + sizeof(remote.sun_family);
+    if (connect(s, (struct sockaddr *)&remote, len) == -1) {
+            perror("connect");
+            exit(1);
     }
 
-    // Set up the server address
-    memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sun_family = AF_UNIX;
-    strncpy(serv_addr.sun_path, SERVER_SOCKET_PATH, sizeof(serv_addr.sun_path) - 1);
-
-    // Read from the file and send to the server
-    while ((nbytes = read(filefd, buffer, sizeof(buffer))) > 0) {
-        n_sent = sendto(sockfd, buffer, nbytes, 0, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
-        if (n_sent < 0) {
-            perror("sendto");
-            exit(EXIT_FAILURE);
-        } else if (n_sent != nbytes) {
-            fprintf(stderr, "sendto: Sent %d bytes instead of %d bytes\n", n_sent, nbytes);
-        }
+    // Open file to be sent
+    int fd;
+    if ((fd = open("file.txt", O_RDONLY)) < 0) {
+            perror("open");
+            exit(1);
     }
 
-    // Close the file and socket
-    close(filefd);
-    close(sockfd);
+    // Get file size
+    struct stat st;
+    if (fstat(fd, &st) < 0) {
+            perror("fstat");
+            exit(1);
+    }
+    int file_size = st.st_size;
+
+    // Send file size to server
+    if (send(s, &file_size, sizeof(file_size), 0) < 0) {
+            perror("send");
+            exit(1);
+    }
+
+    // Send file data to server
+    int total = 0, n;
+    while (total < file_size) {
+            n = read(fd, buf, sizeof(buf));
+            if (n < 0) {
+                    perror("read");
+                    exit(1);
+            }
+
+            if (send(s, buf, n, 0) < 0) {
+                    perror("send");
+                    exit(1);
+            }
+
+            total += n;
+    }
+
+    close(fd);
+    close(s);
     return 0;
 }
 
