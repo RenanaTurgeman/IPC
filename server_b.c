@@ -10,6 +10,12 @@
 #include <sys/un.h>
 #include <errno.h>
 #include <sys/un.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <netdb.h>
+
+#define MAX_FILENAME_LEN 256
+#define MAX_FILE_SIZE 1024 * 1024
 
 #define SERVER_PORT 8080
 #define BUFFER_SIZE 1024
@@ -425,14 +431,67 @@ int uds_dgram() {
     return 0;
 }
 
+/*int mmap_filename(){
+   const char *input_filepath = argv[1];
+    const char *output_filepath = argv[2];
 
+    int input_fd = open(input_filepath, O_RDWR);
+    if(input_fd < 0) {
+        printf("\n\"%s \" could not open\n", input_filepath);
+        exit(1);
+    }
+
+    struct stat input_statbuf;
+    int err = fstat(input_fd, &input_statbuf);
+    if(err < 0) {
+        printf("\n\"%s \" could not open\n", input_filepath);
+        exit(2);
+    }
+
+    char *input_ptr = mmap(NULL, input_statbuf.st_size,
+            PROT_READ | PROT_WRITE,
+            MAP_SHARED, input_fd, 0);
+    if(input_ptr == MAP_FAILED) {
+        printf("Mapping Failed\n");
+        return 1;
+    }
+    close(input_fd);
+
+    int output_fd = open(output_filepath, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    if(output_fd < 0) {
+        printf("\n\"%s \" could not open\n", output_filepath);
+        exit(1);
+    }
+
+    ssize_t n = write(output_fd, input_ptr, input_statbuf.st_size);
+    if(n != input_statbuf.st_size) {
+        printf("Write failed\n");
+    }
+
+    err = munmap(input_ptr, input_statbuf.st_size);
+
+    if(err != 0) {
+        printf("UnMapping Failed\n");
+        return 1;
+    }
+
+    close(output_fd);
+
+    return 0;
+}
+*/
+
+int pipe_filename(){
+
+}
 int main(int argc, char *argv[]) {
     // ipv4_tcp();
     // ipv4_udp();
     // ipv6_tcp();
     // ipv6_udp();
-    uds_dgram();
+    // uds_dgram();
     // uds_stream();
-
+    // mmap_filen(ame();
+    // pipe_filename();
     return 0;
 }
