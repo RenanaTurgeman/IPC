@@ -17,7 +17,7 @@ run as client:
 
 #define BUFFER_SIZE 1024
 
-void error(char *msg) {
+void error_ch(char *msg) {
     perror(msg);
     exit(1);
 }
@@ -25,17 +25,17 @@ void error(char *msg) {
 void run_client(char *ip, int port) {
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
-        error("ERROR opening socket");
+        error_ch("ERROR_ch opening socket");
 
     struct sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
     if (inet_pton(AF_INET, ip, &serv_addr.sin_addr) <= 0)
-        error("ERROR invalid address");
+        error_ch("ERROR_ch invalid address");
 
     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-        error("ERROR connecting");
+        error_ch("ERROR_ch connecting");
 
     struct pollfd pfds[2]; //we want to monitor 2 socets
 
@@ -63,7 +63,7 @@ void run_client(char *ip, int port) {
                 // Send message to server
                 int bytes_sent = send(sockfd, buffer, strlen(buffer), 0);
                 if (bytes_sent < 0)
-                    error("ERROR in send");
+                    error_ch("ERROR_ch in send");
             } 
 
             int pollin_happened_0 = pfds[0].revents & POLLIN; //from server
@@ -73,7 +73,7 @@ void run_client(char *ip, int port) {
                 int bytes_received = recv(sockfd, buffer, BUFFER_SIZE, 0);
 
                 if (bytes_received < 0)
-                    error("ERROR in recv");
+                    error_ch("ERROR_ch in recv");
 
                 else if (bytes_received == 0)
                 {
@@ -93,7 +93,7 @@ void run_client(char *ip, int port) {
 void run_server(int port) {
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
-        error("ERROR opening socket");
+        error_ch("ERROR_ch opening socket");
 
     struct sockaddr_in serv_addr, cli_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
@@ -102,14 +102,14 @@ void run_server(int port) {
     serv_addr.sin_port = htons(port);
 
     if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-        error("ERROR on binding");
+        error_ch("ERROR_ch on binding");
 
     listen(sockfd, 5);
 
     socklen_t clilen = sizeof(cli_addr);
     int newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen);
     if (newsockfd < 0)
-        error("ERROR on accept");
+        error_ch("ERROR_ch on accept");
 
     struct pollfd pfds[2];
     pfds[0].fd = newsockfd;
@@ -120,7 +120,7 @@ void run_server(int port) {
     char buffer[BUFFER_SIZE];
     while (1) {
         if (poll(pfds, 2, -1) < 0)
-            error("ERROR on poll");
+            error_ch("ERROR_ch on poll");
         
          else
         {
@@ -134,7 +134,7 @@ void run_server(int port) {
                 // Send message to server
                 int bytes_sent = send(newsockfd, buffer, strlen(buffer), 0);
                 if (bytes_sent < 0)
-                    error("ERROR in send");
+                    error_ch("ERROR_ch in send");
 
             }
 
@@ -149,7 +149,7 @@ void run_server(int port) {
                 int bytes_received = recv(newsockfd, buffer, BUFFER_SIZE, 0);
 
                 if (bytes_received < 0)
-                    error("ERROR recv");
+                    error_ch("ERROR_ch recv");
 
                 else if (bytes_received == 0)
                 {
@@ -168,23 +168,23 @@ void run_server(int port) {
 
 
 
-int main(int argc, char *argv[]) {
+int main_chat(int argc, char *argv[]) {
     if (argc < 2)
-        error("Usage: stnc -s PORT (server) or stnc -c IP PORT (client)");
+        error_ch("Usage: stnc -s PORT (server) or stnc -c IP PORT (client)");
 
     if (strcmp(argv[1], "-s") == 0) {
         if (argc < 3)
-            error("ERROR no port provided for server");
+            error_ch("ERROR_ch no port provided for server");
         int port = atoi(argv[2]);
         run_server(port); 
     } else if (strcmp(argv[1], "-c") == 0) {
         if (argc < 4)
-            error("ERROR no IP address or port provided for client");
+            error_ch("ERROR_ch no IP address or port provided for client");
         char *ip = argv[2];
         int port = atoi(argv[3]);
         run_client(ip, port);
     } else {
-        error("ERROR invalid arguments");
+        error_ch("ERROR_ch invalid arguments");
     }
     return 0;
 }

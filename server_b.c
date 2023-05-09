@@ -289,7 +289,7 @@ int ipv6_tcp(int port)
 
 int ipv6_udp(int port)
 {
-    int sockfd, connfd, filefd, nbytes;
+    int sockfd, filefd, nbytes;
     struct sockaddr_in6 serv_addr, cli_addr;
     socklen_t cli_len;
     char buffer[BUFFER_SIZE];
@@ -352,7 +352,6 @@ int ipv6_udp(int port)
 
     // Close the file and socket
     close(filefd);
-    close(connfd);
     close(sockfd);
 
     // Print the contents of the file to the screen
@@ -748,7 +747,7 @@ else if(strcmp(type ,"uds") == 0 && (strcmp(param, "stream")) == 0){
 }
 }
 
-int main(int argc, char *argv[])
+int server_main_test(int argc, char *argv[])
 {
      if (argc < 5)
         error("Usage: stnc -s port -p (p for performance test) -q (q for quiet)");

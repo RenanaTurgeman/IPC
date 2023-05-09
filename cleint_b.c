@@ -18,21 +18,21 @@
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#define FIFO_NAME "myfifo"
 
-#define SERVER_IP_6 "::1"
-#define BUFFER_SIZE 1024
-#define SOCK_PATH "echo_socket"
+#define FIFO_NAME_C "myfifo"
+#define SERVER_IP_6_C "::1"
+#define BUFFER_SIZE_C 1024
+#define SOCK_PATH_C "echo_socket"
 
-void error(const char *msg) {
+void error_c(const char *msg) {
     perror(msg);
     exit(1);
 }
 
-int ipv4_tcp(char* ip_address , int port){
+int ipv4_tcp_c(char* ip_address , int port){
     int sockfd, filefd, nbytes;
     struct sockaddr_in serv_addr;
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE_C];
 
     // Open the file for reading
     filefd = open("file.txt", O_RDONLY);
@@ -77,10 +77,10 @@ int ipv4_tcp(char* ip_address , int port){
     return 0;
 }
 
-int ipv4_udp(char* ip_address, int port){
+int ipv4_udp_c(char* ip_address, int port){
     int sockfd, filefd, nbytes, n_sent;
     struct sockaddr_in serv_addr;
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE_C];
 
     // Open the file for reading
     filefd = open("file.txt", O_RDONLY);
@@ -122,10 +122,10 @@ int ipv4_udp(char* ip_address, int port){
     return 0;
 }
 
-int ipv6_tcp(char* ip_address, int port){
+int ipv6_tcp_c(char* ip_address, int port){
     int sockfd, filefd, nbytes;
     struct sockaddr_in6 serv_addr;
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE_C];
 
     // Open the file for reading
     filefd = open("file.txt", O_RDONLY);
@@ -146,7 +146,7 @@ int ipv6_tcp(char* ip_address, int port){
     serv_addr.sin6_family = AF_INET6;
     serv_addr.sin6_port = htons(port);
     // if (inet_pton(AF_INET6, ip_address, &serv_addr.sin6_addr) <= 0) {
-    if (inet_pton(AF_INET6, SERVER_IP_6, &serv_addr.sin6_addr) <= 0) {
+    if (inet_pton(AF_INET6, SERVER_IP_6_C, &serv_addr.sin6_addr) <= 0) {
         perror("inet_pton");
         exit(EXIT_FAILURE);
     }
@@ -171,10 +171,10 @@ int ipv6_tcp(char* ip_address, int port){
     return 0;
 }
 
-int ipv6_udp(int port){
+int ipv6_udp_c(int port){
     int sockfd, filefd, nbytes, n_sent;
     struct sockaddr_in6 serv_addr;
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE_C];
 
     // Open the file for reading
     filefd = open("file.txt", O_RDONLY);
@@ -194,7 +194,7 @@ int ipv6_udp(int port){
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin6_family = AF_INET6;
     serv_addr.sin6_port = htons(port);
-    if (inet_pton(AF_INET6, SERVER_IP_6, &serv_addr.sin6_addr) <= 0) {
+    if (inet_pton(AF_INET6, SERVER_IP_6_C, &serv_addr.sin6_addr) <= 0) {
         perror("inet_pton");
         exit(EXIT_FAILURE);
     }
@@ -223,11 +223,11 @@ int ipv6_udp(int port){
     return 0;
 }
 
-int uds_stream() {
+int uds_stream_c() {
     int s, len;
     struct sockaddr_un remote = {
             .sun_family = AF_UNIX,
-            .sun_path = SOCK_PATH,
+            .sun_path = SOCK_PATH_C,
     };
     char buf[1024];
 
@@ -285,11 +285,11 @@ int uds_stream() {
     return 0;
 }
 
-int uds_dgram() {
-    int s, len;
+int uds_dgram_c() {
+    int s;
     struct sockaddr_un remote = {
         .sun_family = AF_UNIX,
-        .sun_path = SOCK_PATH
+        .sun_path = SOCK_PATH_C
     };
 
     if ((s = socket(AF_UNIX, SOCK_DGRAM, 0)) == -1) {
@@ -332,10 +332,9 @@ int uds_dgram() {
     return 0;
 }
 
-int mmap_filename(int port){
+int mmap_filename_c(int port){
     int sockfd, n;
     struct sockaddr_in serv_addr;
-    char buffer[BUFFER_SIZE];
     const char *filename = "file.txt";
     int fd;
     struct stat filestat;
@@ -344,24 +343,24 @@ int mmap_filename(int port){
     // Open file
     fd = open(filename, O_RDONLY);
     if (fd < 0) {
-        error("Error opening file.");
+        error_c("Error opening file.");
     }
 
     // Get file size
     if (fstat(fd, &filestat) < 0) {
-        error("Error getting file size.");
+        error_c("Error getting file size.");
     }
 
     // Map the file into memory
     filedata = mmap(0, filestat.st_size, PROT_READ, MAP_SHARED, fd, 0);
     if (filedata == MAP_FAILED) {
-        error("Error mapping file into memory.");
+        error_c("Error mapping file into memory.");
     }
 
     // Create socket
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0) {
-        error("Error opening socket.");
+        error_c("Error opening socket.");
     }
 
     // Set server address
@@ -373,7 +372,7 @@ int mmap_filename(int port){
     // Send file data to server
     n = sendto(sockfd, filedata, filestat.st_size, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     if (n < 0) {
-        error("Error sending data.");
+        error_c("Error sending data.");
     }
 
     // Close file and socket
@@ -382,15 +381,15 @@ int mmap_filename(int port){
 
     // Unmap the file from memory
     if (munmap(filedata, filestat.st_size) < 0) {
-        error("Error unmapping file.");
+        error_c("Error unmapping file.");
     }
 
     return 0;
 }
 
-int pipe_filename() {
+int pipe_filename_c() {
     int fd;
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE_C];
     ssize_t bytes_read;
     FILE* file;
 
@@ -402,14 +401,14 @@ int pipe_filename() {
     }
 
     // Open the named pipe for writing
-    fd = open(FIFO_NAME, O_WRONLY);
+    fd = open(FIFO_NAME_C, O_WRONLY);
     if (fd == -1) {
         perror("Failed to open named pipe");
         exit(EXIT_FAILURE);
     }
 
     // Read data from the file and write it to the named pipe
-    while ((bytes_read = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
+    while ((bytes_read = fread(buffer, 1, BUFFER_SIZE_C, file)) > 0) {
         write(fd, buffer, bytes_read);
     }
 
@@ -425,41 +424,41 @@ int pipe_filename() {
 
 void send_file(char* type, char* param , char* ip_address, int port){
     if(strcmp(type,"ipv4") == 0 && (strcmp(param, "tcp"))== 0){
-        ipv4_tcp(ip_address, port);
+        ipv4_tcp_c(ip_address, port);
     }
     else if(strcmp(type ,"ipv4") == 0 && (strcmp(param , "udp")) == 0){
-        ipv4_udp(ip_address, port);
+        ipv4_udp_c(ip_address, port);
     }
     else if(strcmp(type ,"ipv6") == 0 && (strcmp(param , "tcp")) == 0){
    
-    ipv6_tcp(ip_address, port);
+    ipv6_tcp_c(ip_address, port);
     }
     else if(strcmp(type, "ipv6") == 0 && (strcmp(param, "udp")) == 0){
 
-    ipv6_udp(port);
+    ipv6_udp_c(port);
     }
 
     else if(strcmp(type, "mmap") == 0 && (strcmp(param, "filename")) == 0){
     
-    mmap_filename(port);
+    mmap_filename_c(port);
     }
     else if(strcmp(type ,"pipe") == 0 && (strcmp(param , "filename")) == 0){
 
-    pipe_filename();
+    pipe_filename_c();
     }
     else if(strcmp(type ,"uds") == 0 && (strcmp(param ,"dgram")) == 0){
    
-    uds_dgram();
+    uds_dgram_c();
     }
     else if(strcmp(type ,"uds") == 0 && (strcmp(param, "stream")) == 0){
     
-    uds_stream();
+    uds_stream_c();
     }
 }
 
-int main(int argc, char *argv[]) {
+int client_main_test(int argc, char *argv[]) {
     if (argc < 7)
-        error("Usage: stnc -c IP PORT -p <type> <param>");
+        error_c("Usage: stnc -c IP PORT -p <type> <param>");
     
     // Set up socket
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
