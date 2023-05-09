@@ -18,7 +18,6 @@
 #define MAX_FILENAME_LEN 256
 #define MAX_FILE_SIZE 1024 * 1024
 
-#define SERVER_PORT 8080
 #define BUFFER_SIZE 1024
 #define SOCK_PATH "echo_socket"
 #define FIFO_NAME "myfifo"
@@ -29,7 +28,7 @@ void error(const char *msg)
     exit(1);
 }
 
-int ipv4_tcp()
+int ipv4_tcp(int port)
 {
     int sockfd, connfd, filefd, nbytes;
     struct sockaddr_in serv_addr, cli_addr;
@@ -48,7 +47,7 @@ int ipv4_tcp()
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serv_addr.sin_port = htons(SERVER_PORT);
+    serv_addr.sin_port = htons(port);
 
     // Bind the socket to the server address
     if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
@@ -111,7 +110,7 @@ int ipv4_tcp()
     return 0;
 }
 
-int ipv4_udp()
+int ipv4_udp(int port)
 {
     int sockfd, nbytes;
     struct sockaddr_in serv_addr, cli_addr;
@@ -130,7 +129,7 @@ int ipv4_udp()
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serv_addr.sin_port = htons(SERVER_PORT);
+    serv_addr.sin_port = htons(port);
 
     // Bind the socket to the server address
     if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
@@ -206,7 +205,7 @@ int ipv4_udp()
     return 0;
 }
 
-int ipv6_tcp()
+int ipv6_tcp(int port)
 {
     int sockfd, connfd, filefd, nbytes;
     struct sockaddr_in6 serv_addr, cli_addr;
@@ -225,7 +224,7 @@ int ipv6_tcp()
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin6_family = AF_INET6;
     serv_addr.sin6_addr = in6addr_any;
-    serv_addr.sin6_port = htons(SERVER_PORT);
+    serv_addr.sin6_port = htons(port);
 
     // Bind the socket to the server address
     if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
@@ -288,7 +287,7 @@ int ipv6_tcp()
     return 0;
 }
 
-int ipv6_udp()
+int ipv6_udp(int port)
 {
     int sockfd, connfd, filefd, nbytes;
     struct sockaddr_in6 serv_addr, cli_addr;
@@ -307,7 +306,7 @@ int ipv6_udp()
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin6_family = AF_INET6;
     serv_addr.sin6_addr = in6addr_any;
-    serv_addr.sin6_port = htons(SERVER_PORT);
+    serv_addr.sin6_port = htons(port);
 
     // Bind the socket to the server address
     if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
@@ -589,7 +588,7 @@ int uds_dgram()
     return 0;
 }
 
-int mmap_filename()
+int mmap_filename(int port)
 {
     // Define the socket and client address structures
     int sockfd;
@@ -616,7 +615,7 @@ int mmap_filename()
     memset((char *)&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(SERVER_PORT);
+    serv_addr.sin_port = htons(port);
 
     // Bind the socket to the server address and port
     if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
@@ -626,7 +625,7 @@ int mmap_filename()
     }
 
     // Display the server listening message
-    printf("Server listening on port %d...\n", SERVER_PORT);
+    printf("Server listening on port %d...\n", port);
 
     // Open the file for writing the received data
     file = fopen("received_text.txt", "w");
@@ -715,25 +714,25 @@ int pipe_filename()
     return 0;
 }
 
-void received_file(char* type , char* param){
+void received_file(char* type , char* param, int port){
       if(strcmp(type,"ipv4") == 0 && (strcmp(param, "tcp"))== 0){
-        ipv4_tcp();
+        ipv4_tcp(port);
     }
     else if(strcmp(type ,"ipv4") == 0 && (strcmp(param , "udp")) == 0){
-        ipv4_udp();
-}
-else if(strcmp(type ,"ipv6") == 0 && (strcmp(param , "tcp")) == 0){
+        ipv4_udp(port);
+    }
+    else if(strcmp(type ,"ipv6") == 0 && (strcmp(param , "tcp")) == 0){
    
-    ipv6_tcp();
-}
-else if(strcmp(type, "ipv6") == 0 && (strcmp(param, "udp")) == 0){
+    ipv6_tcp(port);
+    }
+    else if(strcmp(type, "ipv6") == 0 && (strcmp(param, "udp")) == 0){
 
-   ipv6_udp();
-}
+   ipv6_udp(port);
+    }
 
 else if(strcmp(type, "mmap") == 0 && (strcmp(param, "filename")) == 0){
     
-    mmap_filename();
+    mmap_filename(port);
 }
 else if(strcmp(type ,"pipe") == 0 && (strcmp(param , "filename")) == 0){
 
@@ -753,7 +752,8 @@ int main(int argc, char *argv[])
 {
      if (argc < 5)
         error("Usage: stnc -s port -p (p for performance test) -q (q for quiet)");
-
+    int port = atoi(argv[2]);
+    printf("Port: %d\n", port);
     int server_fd, new_socket, valread;
     struct sockaddr_in address;
     int opt = 1;
@@ -808,7 +808,7 @@ int main(int argc, char *argv[])
     printf("Type: %s\n", type);
     printf("Param: %s\n", param);
 
-    received_file(type , param);
+    received_file(type , param, port);
     // break;
 }
 
@@ -823,6 +823,6 @@ int main(int argc, char *argv[])
         // printf("Type1: %s\n", type);
         // printf("Param1: %s\n", param);
 
-    received_file(type , param);
+    received_file(type , param, port);
     return 0;
 }

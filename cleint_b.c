@@ -21,7 +21,6 @@
 #define FIFO_NAME "myfifo"
 
 #define SERVER_IP_6 "::1"
-#define SERVER_PORT 8080
 #define BUFFER_SIZE 1024
 #define SOCK_PATH "echo_socket"
 
@@ -30,7 +29,7 @@ void error(const char *msg) {
     exit(1);
 }
 
-int ipv4_tcp(char* ip_address){
+int ipv4_tcp(char* ip_address , int port){
     int sockfd, filefd, nbytes;
     struct sockaddr_in serv_addr;
     char buffer[BUFFER_SIZE];
@@ -52,7 +51,7 @@ int ipv4_tcp(char* ip_address){
     // Set up the server address
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(SERVER_PORT);
+    serv_addr.sin_port = htons(port);
     if (inet_pton(AF_INET, ip_address, &serv_addr.sin_addr) <= 0) {
         perror("inet_pton");
         exit(EXIT_FAILURE);
@@ -78,7 +77,7 @@ int ipv4_tcp(char* ip_address){
     return 0;
 }
 
-int ipv4_udp(char* ip_address){
+int ipv4_udp(char* ip_address, int port){
     int sockfd, filefd, nbytes, n_sent;
     struct sockaddr_in serv_addr;
     char buffer[BUFFER_SIZE];
@@ -100,7 +99,7 @@ int ipv4_udp(char* ip_address){
     // Set up the server address
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(SERVER_PORT);
+    serv_addr.sin_port = htons(port);
     if (inet_pton(AF_INET, ip_address, &serv_addr.sin_addr) <= 0) {
         perror("inet_pton");
         exit(EXIT_FAILURE);
@@ -123,7 +122,7 @@ int ipv4_udp(char* ip_address){
     return 0;
 }
 
-int ipv6_tcp(char* ip_address){
+int ipv6_tcp(char* ip_address, int port){
     int sockfd, filefd, nbytes;
     struct sockaddr_in6 serv_addr;
     char buffer[BUFFER_SIZE];
@@ -145,7 +144,7 @@ int ipv6_tcp(char* ip_address){
     // Set up the server address
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin6_family = AF_INET6;
-    serv_addr.sin6_port = htons(SERVER_PORT);
+    serv_addr.sin6_port = htons(port);
     // if (inet_pton(AF_INET6, ip_address, &serv_addr.sin6_addr) <= 0) {
     if (inet_pton(AF_INET6, SERVER_IP_6, &serv_addr.sin6_addr) <= 0) {
         perror("inet_pton");
@@ -172,7 +171,7 @@ int ipv6_tcp(char* ip_address){
     return 0;
 }
 
-int ipv6_udp(){
+int ipv6_udp(int port){
     int sockfd, filefd, nbytes, n_sent;
     struct sockaddr_in6 serv_addr;
     char buffer[BUFFER_SIZE];
@@ -194,7 +193,7 @@ int ipv6_udp(){
     // Set up the server address
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin6_family = AF_INET6;
-    serv_addr.sin6_port = htons(SERVER_PORT);
+    serv_addr.sin6_port = htons(port);
     if (inet_pton(AF_INET6, SERVER_IP_6, &serv_addr.sin6_addr) <= 0) {
         perror("inet_pton");
         exit(EXIT_FAILURE);
@@ -333,7 +332,7 @@ int uds_dgram() {
     return 0;
 }
 
-int mmap_filename(){
+int mmap_filename(int port){
     int sockfd, n;
     struct sockaddr_in serv_addr;
     char buffer[BUFFER_SIZE];
@@ -368,7 +367,7 @@ int mmap_filename(){
     // Set server address
     memset((char *)&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(SERVER_PORT);
+    serv_addr.sin_port = htons(port);
     serv_addr.sin_addr.s_addr = INADDR_ANY;
 
     // Send file data to server
@@ -424,25 +423,25 @@ int pipe_filename() {
 
 }
 
-void send_file(char* type, char* param , char* ip_address){
+void send_file(char* type, char* param , char* ip_address, int port){
     if(strcmp(type,"ipv4") == 0 && (strcmp(param, "tcp"))== 0){
-        ipv4_tcp(ip_address);
+        ipv4_tcp(ip_address, port);
     }
     else if(strcmp(type ,"ipv4") == 0 && (strcmp(param , "udp")) == 0){
-        ipv4_udp(ip_address);
+        ipv4_udp(ip_address, port);
     }
     else if(strcmp(type ,"ipv6") == 0 && (strcmp(param , "tcp")) == 0){
    
-    ipv6_tcp(ip_address);
+    ipv6_tcp(ip_address, port);
     }
     else if(strcmp(type, "ipv6") == 0 && (strcmp(param, "udp")) == 0){
 
-    ipv6_udp();
+    ipv6_udp(port);
     }
 
     else if(strcmp(type, "mmap") == 0 && (strcmp(param, "filename")) == 0){
     
-    mmap_filename();
+    mmap_filename(port);
     }
     else if(strcmp(type ,"pipe") == 0 && (strcmp(param , "filename")) == 0){
 
@@ -470,8 +469,11 @@ int main(int argc, char *argv[]) {
     }
 
     char ip_address[1024];
+    int port;
     strcpy(ip_address, argv[2]);
     printf("IP adress: %s\n", ip_address);
+    port = atoi(argv[3]);
+    printf("Port: %d\n", port);
 
     // Set up server address
     struct sockaddr_in serv_addr;
@@ -504,6 +506,6 @@ int main(int argc, char *argv[]) {
     close(sockfd);
     sleep(1);
 
-    send_file(type , param , ip_address);
+    send_file(type , param , ip_address , port);
     return 0;
 }
