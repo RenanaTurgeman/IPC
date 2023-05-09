@@ -328,15 +328,17 @@ int ipv6_udp() {
 int uds_stream() {
     int s, s2, len, fd;
     struct sockaddr_un remote, local = {
-        .sun_family = AF_UNIX,
+        .sun_family = AF_UNIX, // Set the socket family to UNIX
     };
-    char buf[1024];
-
+    char buf[BUFFER_SIZE]; // Create a buffer for reading/writing data
+    
+    // Create a UNIX socket for communication
     if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
         perror("socket");
         exit(1);
     }
-
+    
+    // Set up the local socket address
     strcpy(local.sun_path, SOCK_PATH);
     unlink(local.sun_path);
     len = strlen(local.sun_path) + sizeof(local.sun_family);
@@ -344,32 +346,33 @@ int uds_stream() {
         perror("bind");
         exit(1);
     }
-
+    // Set the socket to listen for incoming connections
     if (listen(s, 5) == -1) {
         perror("listen");
         exit(1);
     }
 
+    // Create an array of pollfd structures to hold the file descriptors being monitored by poll()
     struct pollfd fds[10];
     memset(fds, 0, sizeof(fds));
     fds[0].fd = s;
     fds[0].events = POLLIN;
 
-    for (;;) {
+    while(1) {
         printf("Waiting for a connection...\n");
-        int rv = poll(fds, 10, -1);
+        int rv = poll(fds, 10, -1); // Wait for incoming data or events on the file descriptors in fds
         if (rv == -1) {
             perror("poll");
             exit(1);
         }
 
         for (int i = 0; i < 10; i++) {
-            if (fds[i].revents == 0) {
+            if (fds[i].revents == 0) { // If there are no events waiting for this file descriptor, skip to the next one
                 continue;
             }
 
-            if (fds[i].revents & POLLIN) {
-                if (fds[i].fd == s) {
+            if (fds[i].revents & POLLIN) { // If there is incoming data waiting for this file descriptor...
+                if (fds[i].fd == s) { // ...and it's the socket we're listening on...
                     socklen_t slen = sizeof(remote);
                     if ((s2 = accept(s, (struct sockaddr *)&remote, &slen)) == -1) {
                         perror("accept");
@@ -504,55 +507,10 @@ int uds_dgram() {
     return 0;
 }
 
-/*int mmap_filename(){
-   const char *input_filepath = argv[1];
-    const char *output_filepath = argv[2];
-
-    int input_fd = open(input_filepath, O_RDWR);
-    if(input_fd < 0) {
-        printf("\n\"%s \" could not open\n", input_filepath);
-        exit(1);
-    }
-
-    struct stat input_statbuf;
-    int err = fstat(input_fd, &input_statbuf);
-    if(err < 0) {
-        printf("\n\"%s \" could not open\n", input_filepath);
-        exit(2);
-    }
-
-    char *input_ptr = mmap(NULL, input_statbuf.st_size,
-            PROT_READ | PROT_WRITE,
-            MAP_SHARED, input_fd, 0);
-    if(input_ptr == MAP_FAILED) {
-        printf("Mapping Failed\n");
-        return 1;
-    }
-    close(input_fd);
-
-    int output_fd = open(output_filepath, O_CREAT | O_WRONLY | O_TRUNC, 0644);
-    if(output_fd < 0) {
-        printf("\n\"%s \" could not open\n", output_filepath);
-        exit(1);
-    }
-
-    ssize_t n = write(output_fd, input_ptr, input_statbuf.st_size);
-    if(n != input_statbuf.st_size) {
-        printf("Write failed\n");
-    }
-
-    err = munmap(input_ptr, input_statbuf.st_size);
-
-    if(err != 0) {
-        printf("UnMapping Failed\n");
-        return 1;
-    }
-
-    close(output_fd);
-
-    return 0;
+int mmap_filename(){
+  
 }
-*/
+
 
 int pipe_filename(){
 
