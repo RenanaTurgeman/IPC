@@ -18,6 +18,7 @@
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#define FIFO_NAME "myfifo"
 
 // #define SERVER_IP "127.0.0.1"
 #define SERVER_IP "::1"
@@ -399,7 +400,6 @@ int mmap_filename(){
 
 
 
-/*
 int pipe_filename() {
     int fd;
     char buffer[BUFFER_SIZE];
@@ -434,7 +434,7 @@ int pipe_filename() {
     return 0;
 
 }
-*/
+
 int main(int argc, char *argv[]) {
     
     // ipv4_tcp();
@@ -443,6 +443,7 @@ int main(int argc, char *argv[]) {
     // ipv6_udp();
     // uds_dgram();
     // uds_stream();
-    mmap_filename();
+    // mmap_filename();
+    pipe_filename();
     return 0;
 }

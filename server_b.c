@@ -656,7 +656,7 @@ int mmap_filename()
     return 0;
 }
 
-/*
+
 int pipe_filename() {
     int fd;
     char buffer[BUFFER_SIZE];
@@ -697,7 +697,7 @@ int pipe_filename() {
 
 }
 
-*/
+
 
 int main(int argc, char *argv[])
 {
@@ -707,7 +707,7 @@ int main(int argc, char *argv[])
     // ipv6_udp();
     // uds_dgram();
     // uds_stream();
-    mmap_filename();
-    // pipe_filename();
+    // mmap_filename();
+    pipe_filename();
     return 0;
 }
