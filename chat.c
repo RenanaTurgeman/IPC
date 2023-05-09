@@ -7,15 +7,7 @@ run as client:
 ./sttnc -c 127.0.0.1 12345 (contect to the server running at localhost 0n port 12345)
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <poll.h>
-
-#define BUFFER_SIZE 1024
+#include "chat.h"
 
 void error_ch(char *msg) {
     perror(msg);
@@ -165,8 +157,6 @@ void run_server(int port) {
     close(newsockfd);
     close(sockfd);
 }
-
-
 
 int main_chat(int argc, char *argv[]) {
     if (argc < 2)

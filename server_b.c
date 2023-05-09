@@ -1,26 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/un.h>
-#include <errno.h>
-#include <sys/un.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <netdb.h>
-#include <poll.h>
-
-#define MAX_FILENAME_LEN 256
-#define MAX_FILE_SIZE 1024 * 1024
-
-#define BUFFER_SIZE 1024
-#define SOCK_PATH "echo_socket"
-#define FIFO_NAME "myfifo"
+#include "server_b.h"
 
 void error(const char *msg)
 {
@@ -729,22 +707,22 @@ void received_file(char* type , char* param, int port){
    ipv6_udp(port);
     }
 
-else if(strcmp(type, "mmap") == 0 && (strcmp(param, "filename")) == 0){
+    else if(strcmp(type, "mmap") == 0 && (strcmp(param, "filename")) == 0){
     
     mmap_filename(port);
-}
-else if(strcmp(type ,"pipe") == 0 && (strcmp(param , "filename")) == 0){
+    }
+    else if(strcmp(type ,"pipe") == 0 && (strcmp(param , "filename")) == 0){
 
     pipe_filename();
-}
-else if(strcmp(type ,"uds") == 0 && (strcmp(param ,"dgram")) == 0){
+    }
+        else if(strcmp(type ,"uds") == 0 && (strcmp(param ,"dgram")) == 0){
    
     uds_dgram();
-}
-else if(strcmp(type ,"uds") == 0 && (strcmp(param, "stream")) == 0){
+    }
+    else if(strcmp(type ,"uds") == 0 && (strcmp(param, "stream")) == 0){
     
     uds_stream();
-}
+    }
 }
 
 int server_main_test(int argc, char *argv[])

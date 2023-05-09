@@ -1,22 +1,26 @@
 CC=gcc
-OBJ= cleint_b.o server_b.o chat.o
+OBJ= client_b.o server_b.o chat.o main.o
 NAME = main
 CFLAGS = -Wall -g
 
 all : stnc
+
 stnc: $(OBJ)
-	$(CC) $(CFLAGS) $(OBJ) -o chat  
+	$(CC) $(CFLAGS) $(OBJ) -o chat 
+
+main.o: main.c client_b.h server_b.h chat.h
+	$(CC) $(CFLAGS) -c $< -o main.o
+
 server_b.o: server_b.c server_b.h
-	$(CC) $(CFLAGS) -c server_b.c
-cleint_b.o: cleint_b.c cleint_b.h
-	$(CC) $(CFLAGS) -c cleint_b.c
-chat.o: chat.c
-	$(CC) $(CFLAGS) -c chat.c
+	$(CC) $(CFLAGS) -c $< -o server_b.o
+
+client_b.o: client_b.c client_b.h
+	$(CC) $(CFLAGS) -c $< -o client_b.o
+
+chat.o: chat.c chat.h
+	$(CC) $(CFLAGS) -c $< -o chat.o 
 
 .PHONY = clean all 
-
-
-
 
 clean:
 	rm -f *.o *.a chat
