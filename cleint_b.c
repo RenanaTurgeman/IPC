@@ -443,6 +443,6 @@ int main(int argc, char *argv[]) {
     // ipv6_udp();
     // uds_dgram();
     // uds_stream();
-    // mmap_filename();
+    mmap_filename();
     return 0;
 }
