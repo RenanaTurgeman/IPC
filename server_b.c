@@ -731,11 +731,11 @@ else if(strcmp(type, "ipv6") == 0 && (strcmp(param, "udp")) == 0){
    ipv6_udp();
 }
 
-else if(strcmp(type, "mmap") == 0 && (strcmp(param, "file")) == 0){
+else if(strcmp(type, "mmap") == 0 && (strcmp(param, "filename")) == 0){
     
     mmap_filename();
 }
-else if(strcmp(type ,"pipe") == 0 && (strcmp(param , "file")) == 0){
+else if(strcmp(type ,"pipe") == 0 && (strcmp(param , "filename")) == 0){
 
     pipe_filename();
 }
@@ -820,8 +820,8 @@ int main(int argc, char *argv[])
         // char *type = strtok(buffer, " ");
         // char *param = strtok(NULL, " ");
 
-        printf("Type1: %s\n", type);
-        printf("Param1: %s\n", param);
+        // printf("Type1: %s\n", type);
+        // printf("Param1: %s\n", param);
 
     received_file(type , param);
     return 0;
