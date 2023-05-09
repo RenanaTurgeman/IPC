@@ -123,7 +123,7 @@ int ipv4_udp(char* ip_address){
     return 0;
 }
 
-int ipv6_tcp(){
+int ipv6_tcp(char* ip_address){
     int sockfd, filefd, nbytes;
     struct sockaddr_in6 serv_addr;
     char buffer[BUFFER_SIZE];
@@ -146,6 +146,7 @@ int ipv6_tcp(){
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin6_family = AF_INET6;
     serv_addr.sin6_port = htons(SERVER_PORT);
+    // if (inet_pton(AF_INET6, ip_address, &serv_addr.sin6_addr) <= 0) {
     if (inet_pton(AF_INET6, SERVER_IP_6, &serv_addr.sin6_addr) <= 0) {
         perror("inet_pton");
         exit(EXIT_FAILURE);
@@ -432,18 +433,18 @@ void send_file(char* type, char* param , char* ip_address){
     }
     else if(strcmp(type ,"ipv6") == 0 && (strcmp(param , "tcp")) == 0){
    
-    ipv6_tcp();
+    ipv6_tcp(ip_address);
     }
     else if(strcmp(type, "ipv6") == 0 && (strcmp(param, "udp")) == 0){
 
     ipv6_udp();
     }
 
-    else if(strcmp(type, "mmap") == 0 && (strcmp(param, "file")) == 0){
+    else if(strcmp(type, "mmap") == 0 && (strcmp(param, "filename")) == 0){
     
     mmap_filename();
     }
-    else if(strcmp(type ,"pipe") == 0 && (strcmp(param , "file")) == 0){
+    else if(strcmp(type ,"pipe") == 0 && (strcmp(param , "filename")) == 0){
 
     pipe_filename();
     }
