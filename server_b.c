@@ -23,6 +23,11 @@
 #define BUFFER_SIZE 1024
 #define SOCK_PATH "echo_socket"
 
+void error(const char *msg) {
+    perror(msg);
+    exit(1);
+}
+
 
 int ipv4_tcp(){
      int sockfd, connfd, filefd, nbytes;
@@ -508,13 +513,102 @@ int uds_dgram() {
 }
 
 int mmap_filename(){
-   
+    int sockfd, clientlen, n;
+    struct sockaddr_in serv_addr, client_addr;
+    char buffer[BUFFER_SIZE];
+
+    // Create socket
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        error("Error opening socket.");
+    }
+
+    memset((char *)&serv_addr, 0, sizeof(serv_addr));
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
+    serv_addr.sin_port = htons(SERVER_PORT);
+
+    // Bind socket to the specified address and port
+    if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        error("Error on binding.");
+    }
+
+    printf("Server listening on port %d...\n", SERVER_PORT);
+
+    clientlen = sizeof(client_addr);
+
+    while (1) {
+        // Receive data from client
+        bzero(buffer, BUFFER_SIZE);
+        n = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr *)&client_addr, &clientlen);
+        if (n < 0) {
+            error("Error receiving data.");
+        }
+
+        // Print received data
+        printf("Received message: %s\n", buffer);
+
+
+        // Echo back to client
+        // n = sendto(sockfd, buffer, strlen(buffer), 0, (struct sockaddr *)&client_addr, clientlen);
+        // if (n < 0) {
+        //     error("Error sending data.");
+        // }
+            close(sockfd); 
+            break;
+            
+        }
+        
+    
+
+    close(sockfd); 
+    return 0;
 }
 
+/*
+int pipe_filename() {
+    int fd;
+    char buffer[BUFFER_SIZE];
+    ssize_t bytes_read;
 
-int pipe_filename(){
+    // Create the named pipe
+    mkfifo(FIFO_NAME, 0666);
+
+    // Open the named pipe for reading
+    fd = open(FIFO_NAME, O_RDONLY);
+    if (fd == -1) {
+        perror("Failed to open named pipe");
+        exit(EXIT_FAILURE);
+    }
+
+    // Open the file to write the received data
+    FILE* file = fopen("received_file.txt", "w");
+    if (file == NULL) {
+        perror("Failed to open file for writing");
+        exit(EXIT_FAILURE);
+    }
+
+    // Read data from the named pipe and write it to the file
+    while ((bytes_read = read(fd, buffer, BUFFER_SIZE)) > 0) {
+        fwrite(buffer, 1, bytes_read, file);
+    }
+
+    // Close the file and named pipe
+    fclose(file);
+    close(fd);
+
+    // Remove the named pipe file
+    unlink(FIFO_NAME);
+
+    printf("File received successfully.\n");
+
+    return 0;
 
 }
+
+*/
+
 int main(int argc, char *argv[]) {
     // ipv4_tcp();
     // ipv4_udp();

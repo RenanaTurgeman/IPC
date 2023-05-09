@@ -25,6 +25,11 @@
 #define BUFFER_SIZE 1024
 #define SOCK_PATH "echo_socket"
 
+void error(const char *msg) {
+    perror(msg);
+    exit(1);
+}
+
 int ipv4_tcp(){
     int sockfd, filefd, nbytes;
     struct sockaddr_in serv_addr;
@@ -328,62 +333,108 @@ int uds_dgram() {
 }
 
 int mmap_filename(){
-    int sockfd, clientlen, n;
-    struct sockaddr_in serv_addr, client_addr;
+    int sockfd, n;
+    struct sockaddr_in serv_addr;
     char buffer[BUFFER_SIZE];
+    const char *filename = "file.txt";
+    int fd;
+    struct stat filestat;
+    char *filedata;
+
+    // Open file
+    fd = open("file.txt", O_RDONLY);
+    if (fd < 0) {
+        error("Error opening file.");
+    }
+
+    // Get file size
+    if (fstat(fd, &filestat) < 0) {
+        error("Error getting file size.");
+    }
+
+    // Map the file into memory
+    filedata = mmap(0, filestat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    if (filedata == MAP_FAILED) {
+        error("Error mapping file into memory.");
+    }
 
     // Create socket
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0) {
-         perror("Erroropening socket.");
-            exit(1);
+        error("Error opening socket.");
     }
 
     memset((char *)&serv_addr, 0, sizeof(serv_addr));
 
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(SERVER_PORT);
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
 
-    // Bind socket to the specified address and port
-    if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        perror("Error on binding");
-            exit(1);
+    // Send file data to server
+    n = sendto(sockfd, filedata, filestat.st_size, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+    if (n < 0) {
+        error("Error sending data.");
     }
 
-    printf("Server listening on port %d...\n", SERVER_PORT);
+    // Receive the echoed data from server
+    // bzero(buffer, BUFFER_SIZE);
+    // n = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, NULL, NULL);
+    // if (n < 0) {
+    //     error("Error receiving data.");
+    // }
 
-    clientlen = sizeof(client_addr);
+    // printf("Received message: %s\n", buffer);
 
-    while (1) {
-        // Receive data from client
-        bzero(buffer, BUFFER_SIZE);
-        n = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr *)&client_addr, &clientlen);
-        if (n < 0) {
-            perror("Error receiving data");
-            exit(1);
-        }
+    // Close the file
+    close(fd);
 
-        // Print received data
-        printf("Received message: %s\n", buffer);
+    // Unmap the file from memory
+    if (munmap(filedata, filestat.st_size) < 0) {
+        error("Error unmapping file.");
+    }
 
-
-        // Echo back to client
-        // n = sendto(sockfd, buffer, strlen(buffer), 0, (struct sockaddr *)&client_addr, clientlen);
-        // if (n < 0) {
-        //     error("Error sending data.");
-        // }
-            close(sockfd); 
-            break;
-            
-        }
-        
-    
-
-    close(sockfd); 
+    close(sockfd);
     return 0;
 }
 
+
+
+/*
+int pipe_filename() {
+    int fd;
+    char buffer[BUFFER_SIZE];
+    ssize_t bytes_read;
+    FILE* file;
+
+    // Open the file to be sent
+    file = fopen("file.txt", "r");
+    if (file == NULL) {
+        perror("Failed to open file");
+        exit(EXIT_FAILURE);
+    }
+
+    // Open the named pipe for writing
+    fd = open(FIFO_NAME, O_WRONLY);
+    if (fd == -1) {
+        perror("Failed to open named pipe");
+        exit(EXIT_FAILURE);
+    }
+
+    // Read data from the file and write it to the named pipe
+    while ((bytes_read = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
+        write(fd, buffer, bytes_read);
+    }
+
+    // Close the file and named pipe
+    fclose(file);
+    close(fd);
+
+    printf("File sent successfully.\n");
+
+    return 0;
+
+}
+*/
 int main(int argc, char *argv[]) {
     
     // ipv4_tcp();
