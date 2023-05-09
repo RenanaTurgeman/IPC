@@ -326,98 +326,70 @@ int uds_dgram() {
 
     return 0;
 }
-/*
+
 int mmap_filename(){
-    int sockfd, n;
-    struct sockaddr_in serv_addr;
-    struct hostent *server;
+    int sockfd, clientlen, n;
+    struct sockaddr_in serv_addr, client_addr;
+    char buffer[BUFFER_SIZE];
 
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    // Create socket
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0) {
-        perror("ERROR opening socket");
-        exit(1);
+         perror("Erroropening socket.");
+            exit(1);
     }
 
-    server = gethostbyname("localhost");
-    if (server == NULL) {
-        fprintf(stderr,"ERROR, no such host\n");
-        exit(0);
-    }
+    memset((char *)&serv_addr, 0, sizeof(serv_addr));
 
-    bzero((char *) &serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(SERVER_PORT);
-    if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0) {
-        perror("ERROR connecting");
-        exit(1);
+
+    // Bind socket to the specified address and port
+    if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        perror("Error on binding");
+            exit(1);
     }
 
-    // Send filename to server
-    char *filename = "file.txt";
-    n = write(sockfd, filename, strlen(filename));
-    if (n < 0) {
-        perror("ERROR writing to socket");
-        exit(1);
-    }
+    printf("Server listening on port %d...\n", SERVER_PORT);
 
-    // Receive file size from server
-    off_t file_size;
-    n = read(sockfd, &file_size, sizeof(file_size));
-    if (n < 0) {
-        perror("ERROR reading from socket");
-        exit(1);
-    }
+    clientlen = sizeof(client_addr);
 
-    // Open a file to write received data
-    int fd = open("received_file", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
-    if (fd < 0) {
-        perror("ERROR opening file");
-        exit(1);
-    }
-
-    // Memory-map the file for writing
-    void *data = mmap(NULL, file_size, PROT_WRITE, MAP_SHARED, fd, 0);
-    if (data == MAP_FAILED) {
-        perror("mmap");
-        exit(1);
-    }
-
-    // Receive file data from server
-    off_t remaining = file_size;
-    char buf[1024];
-    while (remaining > 0) {
-        int len = recv(sockfd, buf, sizeof(buf), 0);
-        if (len < 0) {
-            perror("ERROR reading from socket");
+    while (1) {
+        // Receive data from client
+        bzero(buffer, BUFFER_SIZE);
+        n = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr *)&client_addr, &clientlen);
+        if (n < 0) {
+            perror("Error receiving data");
             exit(1);
         }
-        memcpy(data, buf, len);
-        data += len;
-        remaining -= len;
-    }
 
-    // Unmap the file
-    if (munmap(data, file_size) < 0) {
-        perror("munmap");
-        exit(1);
-    }
+        // Print received data
+        printf("Received message: %s\n", buffer);
 
-    // Close the file and socket
-    close(fd);
-    close(sockfd);
 
-    printf("File received and written to 'received_file'.\n");
+        // Echo back to client
+        // n = sendto(sockfd, buffer, strlen(buffer), 0, (struct sockaddr *)&client_addr, clientlen);
+        // if (n < 0) {
+        //     error("Error sending data.");
+        // }
+            close(sockfd); 
+            break;
+            
+        }
+        
+    
 
+    close(sockfd); 
     return 0;
 }
-*/
+
 int main(int argc, char *argv[]) {
     
     // ipv4_tcp();
     // ipv4_udp();
     // ipv6_tcp();
-    ipv6_udp();
+    // ipv6_udp();
     // uds_dgram();
     // uds_stream();
     // mmap_filename();

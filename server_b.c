@@ -508,7 +508,7 @@ int uds_dgram() {
 }
 
 int mmap_filename(){
-  
+   
 }
 
 
@@ -520,9 +520,9 @@ int main(int argc, char *argv[]) {
     // ipv4_udp();
     // ipv6_tcp();
     // ipv6_udp();
-    uds_dgram();
-    // uds_stream();
-    // mmap_filen(ame();
+    // uds_dgram();
+    uds_stream();
+    // mmap_filename();
     // pipe_filename();
     return 0;
 }
