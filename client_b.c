@@ -328,7 +328,9 @@ int mmap_filename_c(int port){
     }
 
     // Map the file into memory
-    filedata = mmap(0, filestat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    // filedata = mmap(0, filestat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    filedata = mmap(0, 100 * 1024 * 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
     if (filedata == MAP_FAILED) {
         error_c("Error mapping file into memory.");
     }
