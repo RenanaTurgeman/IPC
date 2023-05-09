@@ -20,8 +20,8 @@
 #include <netdb.h>
 #define FIFO_NAME "myfifo"
 
-// #define SERVER_IP "127.0.0.1"
-#define SERVER_IP "::1"
+#define SERVER_IP "127.0.0.1"
+// #define SERVER_IP "::1"
 #define SERVER_PORT 8080
 #define BUFFER_SIZE 1024
 #define SOCK_PATH "echo_socket"
@@ -426,15 +426,82 @@ int pipe_filename() {
 
 }
 
-int main(int argc, char *argv[]) {
+void send_file(char* type, char* param){
+    if(strcmp(type,"ipv4") == 0 && (strcmp(param, "tcp"))== 0){
+        ipv4_tcp();
+    }
+    else if(strcmp(type ,"ipv4") == 0 && (strcmp(param , "udp")) == 0){
+        ipv4_udp();
+}
+else if(strcmp(type ,"ipv6") == 0 && (strcmp(param , "tcp")) == 0){
+   
+    ipv6_tcp();
+}
+else if(strcmp(type, "ipv6") == 0 && (strcmp(param, "udp")) == 0){
+
+   ipv6_udp();
+}
+
+else if(strcmp(type, "mmap") == 0 && (strcmp(param, "file")) == 0){
     
-    // ipv4_tcp();
-    // ipv4_udp();
-    // ipv6_tcp();
-    // ipv6_udp();
-    // uds_dgram();
-    // uds_stream();
     mmap_filename();
-    // pipe_filename();
+}
+else if(strcmp(type ,"pipe") == 0 && (strcmp(param , "file")) == 0){
+
+    pipe_filename();
+}
+else if(strcmp(type ,"uds") == 0 && (strcmp(param ,"dgram")) == 0){
+   
+    uds_dgram();
+}
+else if(strcmp(type ,"uds") == 0 && (strcmp(param, "stream")) == 0){
+    
+    uds_stream();
+}
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 7)
+        error("Usage: stnc -c IP PORT -p <type> <param>");
+    
+    // Set up socket
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        perror("Error opening socket");
+        exit(1);
+    }
+
+    // Set up server address
+    struct sockaddr_in serv_addr;
+    memset(&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(8081);
+    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");  // Server IP address
+
+    // Connect to server
+    if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        perror("Error connecting to server");
+        exit(1);
+    }
+
+    // Send data over socket
+    char type[1024], param[1024];
+    strcpy(type, argv[5]);
+    strcpy(param, argv[6]);
+    printf("message1: %s\n", type);
+    printf("message2: %s\n", param);
+
+    char data[2048];
+    sprintf(data, "%s %s", type, param);
+    if (send(sockfd, data, strlen(data), 0) < 0) {
+        perror("Error sending data");
+        exit(1);
+    }
+
+    // Close socket
+    close(sockfd);
+    sleep(1);
+
+    send_file(type , param);
     return 0;
 }

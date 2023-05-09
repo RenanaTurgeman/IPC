@@ -715,15 +715,114 @@ int pipe_filename()
     return 0;
 }
 
+void received_file(char* type , char* param){
+      if(strcmp(type,"ipv4") == 0 && (strcmp(param, "tcp"))== 0){
+        ipv4_tcp();
+    }
+    else if(strcmp(type ,"ipv4") == 0 && (strcmp(param , "udp")) == 0){
+        ipv4_udp();
+}
+else if(strcmp(type ,"ipv6") == 0 && (strcmp(param , "tcp")) == 0){
+   
+    ipv6_tcp();
+}
+else if(strcmp(type, "ipv6") == 0 && (strcmp(param, "udp")) == 0){
+
+   ipv6_udp();
+}
+
+else if(strcmp(type, "mmap") == 0 && (strcmp(param, "file")) == 0){
+    
+    mmap_filename();
+}
+else if(strcmp(type ,"pipe") == 0 && (strcmp(param , "file")) == 0){
+
+    pipe_filename();
+}
+else if(strcmp(type ,"uds") == 0 && (strcmp(param ,"dgram")) == 0){
+   
+    uds_dgram();
+}
+else if(strcmp(type ,"uds") == 0 && (strcmp(param, "stream")) == 0){
+    
+    uds_stream();
+}
+}
+
 int main(int argc, char *argv[])
 {
-    // ipv4_tcp();
-    // ipv4_udp();
-    // ipv6_tcp();
-    // ipv6_udp();
-    // uds_dgram();
-    // uds_stream();
-    mmap_filename();
-    // pipe_filename();
+     if (argc < 5)
+        error("Usage: stnc -s port -p (p for performance test) -q (q for quiet)");
+
+    int server_fd, new_socket, valread;
+    struct sockaddr_in address;
+    int opt = 1;
+    int addrlen = sizeof(address);
+    char buffer[BUFFER_SIZE] = {0};
+
+    // Create socket file descriptor
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+        perror("socket failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Attach socket to the port 8081
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(8081);
+
+    // Bind the socket to the specified port
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Start listening for incoming connections
+    if (listen(server_fd, 3) < 0) {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+
+    // Wait for incoming connection and accept it
+    if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
+        perror("accept");
+        exit(EXIT_FAILURE);
+    }
+    char *type ,*param;
+    // Receive messages from the client and print them to the console
+    while (1) {
+    valread = read(new_socket, buffer, BUFFER_SIZE);
+    if (valread <= 0) {
+        break;
+    }
+    printf("%s\n", buffer);
+
+    // Parse data into parameters
+     type = strtok(buffer, " ");
+     param = strtok(NULL, " ");
+
+    printf("Type: %s\n", type);
+    printf("Param: %s\n", param);
+
+    received_file(type , param);
+    // break;
+}
+
+
+    // Close the socket
+    close(new_socket);
+
+    // Parse data into parameters
+        // char *type = strtok(buffer, " ");
+        // char *param = strtok(NULL, " ");
+
+        printf("Type1: %s\n", type);
+        printf("Param1: %s\n", param);
+
+    received_file(type , param);
     return 0;
 }

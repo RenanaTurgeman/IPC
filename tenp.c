@@ -1,123 +1,106 @@
+if (argc < 7)
+{
+//fprintf("error");
+exit(1);
+}
 
-int main(int argc, char *argv[]) {
-    if (argc < 2)
-        error("Usage: stnc -s PORT (server) or stnc -c IP PORT (client)");
+char message[2][1024];
+strcpy(message[0], argv[5]);  // Replace "IPv4 Address" with the actual IPv4 address
+strcpy(message[1], argv[6]);
 
-    if (strcmp(argv[1], "-s") == 0) {
-        if (argc < 3)
-            error("ERROR no port provided for server");
-        int port = atoi(argv[2]);
-        run_server(port); 
-    } else if (strcmp(argv[1], "-c") == 0) {
-        if (argc < 4)
-            error("ERROR no IP address or port provided for client");
-        char *ip = argv[2];
-        int port = atoi(argv[3]);
-        run_client(ip, port);
-    } else {
-        error("ERROR invalid arguments");
-    }
+
+printf("%s,%s\n" ,argv[5], argv[6] );
+printf("%s,%s\n" ,message[0], message[1] );
+
+
+//--------------sending choise to server-------------
+
+int client_fd;
+struct sockaddr_in server_addr;
+
+
+// Create a socket
+if ((client_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+    perror("socket");
+    exit(EXIT_FAILURE);
+}
+
+// Prepare the server address structure
+server_addr.sin_family = AF_INET;
+server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");  // Server IP address
+server_addr.sin_port = htons(8000);
+
+// Connect to the server
+if (connect(client_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
+    perror("connect");
+    exit(EXIT_FAILURE);
+}
+
+
+printf("message1: %s\n", message[0]);
+printf("message2: %s\n", message[1]);
+
+// Send data to the server
+if (send(client_fd, message[0], strlen(message[0]), 0) == -1) {
+    perror("send");
+    exit(EXIT_FAILURE);
+}
+sleep(1);
+if (send(client_fd, message[1], strlen(message[1]), 0) == -1) {
+    perror("send");
+    exit(EXIT_FAILURE);
+}
+
+
+// Close the connection
+close(client_fd);
+
+
+
+sleep(1);
+//------------------------------------------------
+
+
+if(strcmp(argv[5],"ipv4") == 0 && (strcmp(argv[6], "tcp"))== 0){
+    printf("client open\n");
+    c_ipv4_tcp();
+}
+else if(strcmp(argv[5] ,"ipv4") == 0 && (strcmp(argv[6] , "udp")) == 0){
+    
+    c_ipv4_udp();
+}
+else if(strcmp(argv[5] ,"ipv6") == 0 && (strcmp(argv[6] , "tcp")) == 0){
+   
+    c_ipv6_tcp();
+}
+else if(strcmp(argv[5], "ipv6") == 0 && (strcmp(argv[6], "udp")) == 0){
+
+    c_ipv6_udp();
+}
+
+else if(strcmp(argv[5], "mmap") == 0 && (strcmp(argv[6], "file")) == 0){
+    
+    c_mmap();
+}
+else if(strcmp(argv[5] ,"pipe") == 0 && (strcmp(argv[6] , "file")) == 0){
+
+    c_pipe();
+}
+else if(strcmp(argv[5] ,"uds") == 0 && (strcmp(argv[6] ,"dgram")) == 0){
+   
+    c_uds_dgram();
+}
+else if(strcmp(argv[5] ,"uds") == 0 && (strcmp(argv[6], "stream")) == 0){
+    
+    c_uds_stream();
+}
+
+
+
+
+
+
+
+
     return 0;
-}
-
-
-
-
-
-
-
-int main(int argc, char *argv[]) {
-if (argc < 2) {
-printf("Usage: stnc [options]\n");
-printf("For help, use stnc -h\n");
-exit(0);
-}
-int isServer = 0;
-int isClient = 0;
-int quietMode = 0;
-int performTest = 0;
-char *address = NULL;
-char *port = NULL;
-char *type = NULL;
-char *param = NULL;
-
-int opt;
-while ((opt = getopt(argc, argv, "sqhsc:p:")) != -1) {
-    switch (opt) {
-        case 's':
-            isServer = 1;
-            break;
-        case 'c':
-            isClient = 1;
-            address = strtok(optarg, ":");
-            port = strtok(NULL, ":");
-            break;
-        case 'p':
-            performTest = 1;
-            type = strtok(optarg, " ");
-            param = strtok(NULL, " ");
-            break;
-        case 'q':
-            quietMode = 1;
-            break;
-        case 'h':
-            printf("Usage:\n");
-            printf("Server: stnc -s PORT -p -q\n");
-            printf("Client: stnc -c IP:PORT -p <type> <param>\n");
-            printf("Options:\n");
-            printf("  -s              Start server\n");
-            printf("  -c IP:PORT      Connect to server\n");
-            printf("  -p TYPE PARAM   Perform performance test with TYPE and PARAM\n");
-            printf("  -q              Quiet mode, only show test results\n");
-            printf("  -h              Show this help message\n");
-            exit(0);
-        default:
-            printf("Invalid argument. Use stnc -h for help.\n");
-            exit(1);
-    }
-}
-
-if (!isServer && !isClient) {
-    printf("Invalid argument. Use stnc -h for help.\n");
-    exit(1);
-}
-
-if (isServer) {
-    if (!port || !performTest) {
-        printf("Invalid argument. Use stnc -h for help.\n");
-        exit(1);
-    }
-    server(atoi(port), performTest, quietMode);
-} else {
-    if (!address || !port || !performTest) {
-        printf("Invalid argument. Use stnc -h for help.\n");
-        exit(1);
-    }
-    client(address, atoi(port), type, param, performTest);
-}
-
-return 0;
-}
-
-void generate_data(char *data, size_t size) {
-    for(size_t i = 0; i < size; i++) {
-        data[i] = i % 256;
-    }
-}
-
-unsigned long long calculate_checksum(char *data, size_t size) {
-    unsigned long long sum = 0;
-    for(size_t i = 0; i < size; i++) {
-        sum += (unsigned char) data[i];
-    }
-    return sum;
-}
-
-unsigned long long get_current_time_ms() {
-    struct timespec ts;
-    if(clock_gettime(CLOCK_MONOTONIC, &ts) == -1) {
-        perror("clock_gettime");
-        exit(EXIT_FAILURE);
-    }
-    return (unsigned long long) ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 }
