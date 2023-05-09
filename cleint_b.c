@@ -21,7 +21,7 @@
 #define FIFO_NAME "myfifo"
 
 #define SERVER_IP "127.0.0.1"
-// #define SERVER_IP "::1"
+#define SERVER_IP_6 "::1"
 #define SERVER_PORT 8080
 #define BUFFER_SIZE 1024
 #define SOCK_PATH "echo_socket"
@@ -147,7 +147,7 @@ int ipv6_tcp(){
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin6_family = AF_INET6;
     serv_addr.sin6_port = htons(SERVER_PORT);
-    if (inet_pton(AF_INET6, SERVER_IP, &serv_addr.sin6_addr) <= 0) {
+    if (inet_pton(AF_INET6, SERVER_IP_6, &serv_addr.sin6_addr) <= 0) {
         perror("inet_pton");
         exit(EXIT_FAILURE);
     }
@@ -195,7 +195,7 @@ int ipv6_udp(){
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin6_family = AF_INET6;
     serv_addr.sin6_port = htons(SERVER_PORT);
-    if (inet_pton(AF_INET6, SERVER_IP, &serv_addr.sin6_addr) <= 0) {
+    if (inet_pton(AF_INET6, SERVER_IP_6, &serv_addr.sin6_addr) <= 0) {
         perror("inet_pton");
         exit(EXIT_FAILURE);
     }
