@@ -343,7 +343,7 @@ int mmap_filename(){
     char *filedata;
 
     // Open file
-    fd = open("file.txt", O_RDONLY);
+    fd = open(filename, O_RDONLY);
     if (fd < 0) {
         error("Error opening file.");
     }
@@ -365,8 +365,8 @@ int mmap_filename(){
         error("Error opening socket.");
     }
 
+    // Set server address
     memset((char *)&serv_addr, 0, sizeof(serv_addr));
-
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(SERVER_PORT);
     serv_addr.sin_addr.s_addr = INADDR_ANY;
@@ -377,24 +377,15 @@ int mmap_filename(){
         error("Error sending data.");
     }
 
-    // Receive the echoed data from server
-    // bzero(buffer, BUFFER_SIZE);
-    // n = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, NULL, NULL);
-    // if (n < 0) {
-    //     error("Error receiving data.");
-    // }
-
-    // printf("Received message: %s\n", buffer);
-
-    // Close the file
+    // Close file and socket
     close(fd);
+    close(sockfd);
 
     // Unmap the file from memory
     if (munmap(filedata, filestat.st_size) < 0) {
         error("Error unmapping file.");
     }
 
-    close(sockfd);
     return 0;
 }
 
@@ -443,7 +434,7 @@ int main(int argc, char *argv[]) {
     // ipv6_udp();
     // uds_dgram();
     // uds_stream();
-    // mmap_filename();
-    pipe_filename();
+    mmap_filename();
+    // pipe_filename();
     return 0;
 }

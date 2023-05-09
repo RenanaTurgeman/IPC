@@ -591,73 +591,89 @@ int uds_dgram()
 
 int mmap_filename()
 {
-    int sockfd, n;
+    // Define the socket and client address structures
+    int sockfd;
     struct sockaddr_in serv_addr, client_addr;
-    socklen_t clientlen = sizeof(client_addr);
-    char buffer[BUFFER_SIZE];
-    struct pollfd fds[1];
 
-    // Create socket
+    // Define the length of the client address
+    socklen_t clientlen = sizeof(client_addr);
+
+    // Define the buffer to store the received data
+    char buffer[BUFFER_SIZE];
+
+    // Define the file to write the received data
+    FILE *file;
+
+    // Create a socket
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0)
     {
-        error("Error opening socket.");
+        perror("Error opening socket.");
+        exit(EXIT_FAILURE);
     }
 
+    // Initialize the server address structure
     memset((char *)&serv_addr, 0, sizeof(serv_addr));
-
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(SERVER_PORT);
 
-    // Bind socket to the specified address and port
+    // Bind the socket to the server address and port
     if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
-        error("Error on binding.");
+        perror("Error on binding.");
+        exit(EXIT_FAILURE);
     }
 
+    // Display the server listening message
     printf("Server listening on port %d...\n", SERVER_PORT);
 
-    FILE *file = fopen("recieve_text.txt", "w");
-
+    // Open the file for writing the received data
+    file = fopen("received_text.txt", "w");
     if (file == NULL)
     {
-        error("Error opening file.");
+        perror("Error opening file.");
+        exit(EXIT_FAILURE);
     }
 
+    // Create a pollfd structure to monitor the socket for activity
+    struct pollfd fds[1];
     fds[0].fd = sockfd;
     fds[0].events = POLLIN;
 
-    while (1)
+    // Wait for activity on the socket
+    while (poll(fds, 1, -1) >= 0)
     {
-        // Wait for activity on the socket
-        if (poll(fds, 1, -1) < 0)
-        {
-            error("Error on poll.");
-        }
-
-        // Receive data from client
+        // Receive data from the client
         bzero(buffer, BUFFER_SIZE);
-        n = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr *)&client_addr, &clientlen);
+        int n = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr *)&client_addr, &clientlen);
         if (n < 0)
         {
-            error("Error receiving data.");
+            perror("Error receiving data.");
+            exit(EXIT_FAILURE);
         }
 
-        // Print received data
+        // Print the received data and write it to the file
         printf("Received message: %s\n", buffer);
         fprintf(file, "%s", buffer);
-        break;
+
+        // Close the file and socket
+        fclose(file);
+        close(sockfd);
+
+        // Exit the program
+        exit(EXIT_SUCCESS);
     }
 
-    fclose(file);
-    close(sockfd);
+    // If the poll function fails, display an error message and exit
+    perror("Error on poll.");
+    exit(EXIT_FAILURE);
 
     return 0;
 }
 
-
-int pipe_filename() {
+int pipe_filename()
+{
     int fd;
     char buffer[BUFFER_SIZE];
     ssize_t bytes_read;
@@ -667,20 +683,23 @@ int pipe_filename() {
 
     // Open the named pipe for reading
     fd = open(FIFO_NAME, O_RDONLY);
-    if (fd == -1) {
+    if (fd == -1)
+    {
         perror("Failed to open named pipe");
         exit(EXIT_FAILURE);
     }
 
     // Open the file to write the received data
-    FILE* file = fopen("received_file.txt", "w");
-    if (file == NULL) {
+    FILE *file = fopen("received_file.txt", "w");
+    if (file == NULL)
+    {
         perror("Failed to open file for writing");
         exit(EXIT_FAILURE);
     }
 
     // Read data from the named pipe and write it to the file
-    while ((bytes_read = read(fd, buffer, BUFFER_SIZE)) > 0) {
+    while ((bytes_read = read(fd, buffer, BUFFER_SIZE)) > 0)
+    {
         fwrite(buffer, 1, bytes_read, file);
     }
 
@@ -694,10 +713,7 @@ int pipe_filename() {
     printf("File received successfully.\n");
 
     return 0;
-
 }
-
-
 
 int main(int argc, char *argv[])
 {
@@ -707,7 +723,7 @@ int main(int argc, char *argv[])
     // ipv6_udp();
     // uds_dgram();
     // uds_stream();
-    // mmap_filename();
-    pipe_filename();
+    mmap_filename();
+    // pipe_filename();
     return 0;
 }
