@@ -1,4 +1,7 @@
 #include <string.h>
+#include "chat.h"
+#include "client_b.h"
+#include "server_b.h"
 
 int main(int argc, char *argv[])
 {
@@ -13,7 +16,7 @@ int main(int argc, char *argv[])
             main_chat(argc, argv);
         }
     }
-    else(strcmp(argv[1], "-s") == 0)
+    else if(strcmp(argv[1], "-s") == 0)
     {
         if(argc >= 5 && strcmp(argv[3], "-p"))
         {
@@ -24,5 +27,5 @@ int main(int argc, char *argv[])
             main_chat(argc, argv);
         }
     }
-
+    return 0;
 }

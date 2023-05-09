@@ -38,7 +38,8 @@ void run_client(char *ip, int port) {
 
     char buffer[BUFFER_SIZE];
     while (1) {
-        // printf("Enter message: ");
+        // Initialize buffer to zero
+        memset(buffer, 0, BUFFER_SIZE);
 
         int num_events = poll(pfds, 2, -1); 
 
@@ -72,7 +73,7 @@ void run_client(char *ip, int port) {
                     printf("Server disconnected.\n");
                     break;
                 }
-
+                buffer[bytes_received] = '\0';/////////////////
                 printf("Server: %s\n", buffer);
             }
         }
@@ -111,6 +112,8 @@ void run_server(int port) {
 
     char buffer[BUFFER_SIZE];
     while (1) {
+        // Initialize buffer to zero
+        memset(buffer, 0, BUFFER_SIZE);
         if (poll(pfds, 2, -1) < 0)
             error_ch("ERROR_ch on poll");
         
@@ -121,7 +124,6 @@ void run_server(int port) {
             if (pollin_happened_1)
             {
                 fgets(buffer, BUFFER_SIZE, stdin);
-                // buffer[strlen(buffer) - 1] = '\0';
 
                 // Send message to server
                 int bytes_sent = send(newsockfd, buffer, strlen(buffer), 0);
@@ -148,6 +150,8 @@ void run_server(int port) {
                     printf("Server disconnected.\n");
                     break;
                 }
+                buffer[bytes_received] = '\0';/////////////////
+
                 printf("Client: %s\n", buffer);
             }
         }

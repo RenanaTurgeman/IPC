@@ -1,12 +1,12 @@
 CC=gcc
 OBJ= client_b.o server_b.o chat.o main.o
-NAME = main
+NAME = stnc
 CFLAGS = -Wall -g
 
 all : stnc
 
 stnc: $(OBJ)
-	$(CC) $(CFLAGS) $(OBJ) -o chat 
+	$(CC) $(CFLAGS) $(OBJ) -o $(NAME)
 
 main.o: main.c client_b.h server_b.h chat.h
 	$(CC) $(CFLAGS) -c $< -o main.o
@@ -23,4 +23,4 @@ chat.o: chat.c chat.h
 .PHONY = clean all 
 
 clean:
-	rm -f *.o *.a chat
+	rm -f *.o *.a $(NAME)
