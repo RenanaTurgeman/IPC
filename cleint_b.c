@@ -19,8 +19,8 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-#define SERVER_IP "127.0.0.1"
-// #define SERVER_IP "::1"
+// #define SERVER_IP "127.0.0.1"
+#define SERVER_IP "::1"
 #define SERVER_PORT 8080
 #define BUFFER_SIZE 1024
 #define SOCK_PATH "echo_socket"
@@ -417,7 +417,7 @@ int main(int argc, char *argv[]) {
     // ipv4_tcp();
     // ipv4_udp();
     // ipv6_tcp();
-    // ipv6_udp();
+    ipv6_udp();
     // uds_dgram();
     // uds_stream();
     // mmap_filename();
