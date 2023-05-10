@@ -244,7 +244,6 @@ int ipv6_udp_c(char* ip_address, int port){
     return 0;
 }
 
-
 int uds_stream_c() {
     printf("uds_stream,");
     struct timeval start, end;
@@ -375,73 +374,131 @@ int uds_dgram_c() {
     return 0;
 }
 
-int mmap_filename_c(int port){
-    printf("mmap_filename,");
-    struct timeval start, end;
+// int mmap_filename_c(int port){
+//     printf("mmap_filename,");
+//     struct timeval start, end;
 
-    int sockfd, n;
+//     int sockfd, n;
+//     struct sockaddr_in serv_addr;
+//     const char *filename = "file.txt";
+//     int fd;
+//     struct stat filestat;
+//     char *filedata;
+
+//     // Open file
+//     fd = open(filename, O_RDONLY);
+//     if (fd < 0) {
+//         error_c("Error opening file.");
+//     }
+
+//     // Get file size
+//     if (fstat(fd, &filestat) < 0) {
+//         error_c("Error getting file size.");
+//     }
+
+//     // Map the file into memory
+//     // filedata = mmap(0, filestat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+//     filedata = mmap(0, 100 * 1024 * 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+//     if (filedata == MAP_FAILED) {
+//         error_c("Error mapping file into memory.");
+//     }
+
+//     // Create socket
+//     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+//     if (sockfd < 0) {
+//         error_c("Error opening socket.");
+//     }
+
+//     // Set server address
+//     memset((char *)&serv_addr, 0, sizeof(serv_addr));
+//     serv_addr.sin_family = AF_INET;
+//     serv_addr.sin_port = htons(port);
+//     serv_addr.sin_addr.s_addr = INADDR_ANY;
+    
+//     gettimeofday(&start, NULL); // get start time before start to send
+
+//     // Send file data to server
+//     n = sendto(sockfd, filedata, filestat.st_size, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+//     if (n < 0) {
+//         error_c("Error sending data.");
+//     }
+        
+//     gettimeofday(&end, NULL); // get end time after finish to send
+
+//     // Close file and socket
+//     close(fd);
+//     close(sockfd);
+
+//     // Unmap the file from memory
+//     if (munmap(filedata, filestat.st_size) < 0) {
+//         error_c("Error unmapping file.");
+//     }
+//     long seconds = end.tv_sec - start.tv_sec;
+//     long useconds = end.tv_usec - start.tv_usec;
+//     double elapsed = seconds * 1000.0 + useconds / 1000.0;
+//     printf("%.2f\n", elapsed);
+    
+//     return 0;
+// }
+/*adi*/
+int mmap_filename_c(int port) {
     struct sockaddr_in serv_addr;
-    const char *filename = "file.txt";
-    int fd;
     struct stat filestat;
-    char *filedata;
-
-    // Open file
-    fd = open(filename, O_RDONLY);
+    int fd = open("file.txt", O_RDONLY);
     if (fd < 0) {
-        error_c("Error opening file.");
+        perror("open");
+        return -1;
     }
-
-    // Get file size
     if (fstat(fd, &filestat) < 0) {
-        error_c("Error getting file size.");
+        perror("fstat");
+        close(fd);
+        return -1;
     }
 
-    // Map the file into memory
-    // filedata = mmap(0, filestat.st_size, PROT_READ, MAP_SHARED, fd, 0);
-    filedata = mmap(0, 100 * 1024 * 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-
+    off_t file_size = filestat.st_size;
+    char *filedata = mmap(NULL, file_size, PROT_READ, MAP_PRIVATE, fd, 0);
     if (filedata == MAP_FAILED) {
-        error_c("Error mapping file into memory.");
+        perror("mmap");
+        close(fd);
+        return -1;
     }
 
-    // Create socket
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0) {
-        error_c("Error opening socket.");
+        perror("socket");
+        munmap(filedata, file_size);
+        close(fd);
+        return -1;
     }
-
-    // Set server address
     memset((char *)&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
     serv_addr.sin_addr.s_addr = INADDR_ANY;
-    
-    gettimeofday(&start, NULL); // get start time before start to send
 
-    // Send file data to server
-    n = sendto(sockfd, filedata, filestat.st_size, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-    if (n < 0) {
-        error_c("Error sending data.");
+    off_t offset = 0;
+    ssize_t bytes_left = file_size;
+    ssize_t bytes_sent;
+    while (bytes_left > 0) {
+        size_t chunk_size = (bytes_left > 1024) ? 1024 : bytes_left;
+        bytes_sent = sendto(sockfd, filedata + offset, chunk_size, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+        if (bytes_sent < 0) {
+            perror("sendto");
+            munmap(filedata, file_size);
+            close(fd);
+            close(sockfd);
+            return -1;
+        }
+        offset += bytes_sent;
+        bytes_left -= bytes_sent;
     }
-        
-    gettimeofday(&end, NULL); // get end time after finish to send
 
-    // Close file and socket
+    munmap(filedata, file_size);
     close(fd);
     close(sockfd);
-
-    // Unmap the file from memory
-    if (munmap(filedata, filestat.st_size) < 0) {
-        error_c("Error unmapping file.");
-    }
-    long seconds = end.tv_sec - start.tv_sec;
-    long useconds = end.tv_usec - start.tv_usec;
-    double elapsed = seconds * 1000.0 + useconds / 1000.0;
-    printf("%.2f\n", elapsed);
-    
     return 0;
 }
+/*adi*/
 
 int pipe_filename_c() {
     printf("pipe_filename,");
