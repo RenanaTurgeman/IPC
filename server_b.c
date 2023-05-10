@@ -874,15 +874,15 @@ int server_main_test(int argc, char *argv[]){
     }
 
     // Print the received data
-    printf("Received data from client: %s\n", buffer);
+    // printf("Received data from client: %s\n", buffer);
     // Parse data into parameters
-        char *type ,*param;
+    char *type ,*param;
+    type = strtok(buffer, " ");
+    param = strtok(NULL, " ");
 
-     type = strtok(buffer, " ");
-     param = strtok(NULL, " ");
+    // printf("Type: %s\n", type);
+    // printf("Param: %s\n", param);
 
-    printf("Type: %s\n", type);
-    printf("Param: %s\n", param);
     // Close the sockets
     close(newsockfd);
     close(sockfd);

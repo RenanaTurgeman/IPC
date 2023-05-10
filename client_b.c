@@ -196,7 +196,6 @@ int ipv6_udp_c(char* ip_address, int port){
         perror("open");
         exit(EXIT_FAILURE);
     }
-    printf("after open the file");
 
     // Create a socket for the client
     sockfd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
@@ -204,7 +203,6 @@ int ipv6_udp_c(char* ip_address, int port){
         perror("socket");
         exit(EXIT_FAILURE);
     }
-    printf("create socket");
 
     // Set up the server address
     memset(&serv_addr, 0, sizeof(serv_addr));
@@ -214,8 +212,6 @@ int ipv6_udp_c(char* ip_address, int port){
         perror("inet_pton");
         exit(EXIT_FAILURE);
     }
-    printf("after inet pton");
-
     
     gettimeofday(&start, NULL); // get start time before send
 
@@ -229,8 +225,6 @@ int ipv6_udp_c(char* ip_address, int port){
             fprintf(stderr, "sendto: Sent %d bytes instead of %d bytes\n", n_sent, nbytes);
         }
     }
-    printf("after send");
-
     
     gettimeofday(&end, NULL); // get end time after finish to send
 
@@ -589,15 +583,15 @@ int client_main_test(int argc, char *argv[]) {
     int port;
     strcpy(ip_address, argv[2]);
 
-    printf("IP adress: %s\n", ip_address);
+    // printf("IP adress: %s\n", ip_address);
     port = atoi(argv[3]);
-    printf("Port: %d\n", port);
+    // printf("Port: %d\n", port);
     
     char type[15], param[15];
     strcpy(type, argv[5]);
     strcpy(param, argv[6]);
-    printf("type: %s\n", type);
-    printf("param: %s\n", param);
+    // printf("type: %s\n", type);
+    // printf("param: %s\n", param);
 
     int sockfd;
     struct sockaddr_in server_addr;
