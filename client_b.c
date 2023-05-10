@@ -6,6 +6,8 @@ void error_c(const char *msg) {
 }
 
 int ipv4_tcp_c(char* ip_address , int port){
+    struct timeval start, end;
+
     int sockfd, filefd, nbytes;
     struct sockaddr_in serv_addr;
     char buffer[BUFFER_SIZE_C];
@@ -38,6 +40,8 @@ int ipv4_tcp_c(char* ip_address , int port){
         perror("connect");
         exit(EXIT_FAILURE);
     }
+    
+    gettimeofday(&start, NULL); // get start time before start to send
 
     // Read from the file and send to the server
     while ((nbytes = read(filefd, buffer, sizeof(buffer))) > 0) {
@@ -46,14 +50,22 @@ int ipv4_tcp_c(char* ip_address , int port){
             exit(EXIT_FAILURE);
         }
     }
+    gettimeofday(&end, NULL); // get end time after finish to send
+
 
     // Close the file and socket
     close(filefd);
     close(sockfd);
+    long seconds = end.tv_sec - start.tv_sec;
+    long useconds = end.tv_usec - start.tv_usec;
+    double elapsed = seconds * 1000.0 + useconds / 1000.0;
+    printf("Time taken in funnction: %.2f ms\n", elapsed);
     return 0;
 }
 
 int ipv4_udp_c(char* ip_address, int port){
+    struct timeval start, end;
+
     int sockfd, filefd, nbytes, n_sent;
     struct sockaddr_in serv_addr;
     char buffer[BUFFER_SIZE_C];
@@ -80,6 +92,8 @@ int ipv4_udp_c(char* ip_address, int port){
         perror("inet_pton");
         exit(EXIT_FAILURE);
     }
+    
+    gettimeofday(&start, NULL); // get start time before start to send
 
     // Read from the file and send to the server
     while ((nbytes = read(filefd, buffer, sizeof(buffer))) > 0) {
@@ -91,14 +105,22 @@ int ipv4_udp_c(char* ip_address, int port){
             fprintf(stderr, "sendto: Sent %d bytes instead of %d bytes\n", n_sent, nbytes);
         }
     }
+    gettimeofday(&end, NULL); // get end time after finish to send
 
     // Close the file and socket
     close(filefd);
     close(sockfd);
+    long seconds = end.tv_sec - start.tv_sec;
+    long useconds = end.tv_usec - start.tv_usec;
+    double elapsed = seconds * 1000.0 + useconds / 1000.0;
+    printf("Time taken in funnction: %.2f ms\n", elapsed);
+    
     return 0;
 }
 
 int ipv6_tcp_c(char* ip_address, int port){
+    struct timeval start, end;
+
     int sockfd, filefd, nbytes;
     struct sockaddr_in6 serv_addr;
     char buffer[BUFFER_SIZE_C];
@@ -132,6 +154,8 @@ int ipv6_tcp_c(char* ip_address, int port){
         perror("connect");
         exit(EXIT_FAILURE);
     }
+    
+    gettimeofday(&start, NULL); // get start time before start to send
 
     // Read from the file and send to the server
     while ((nbytes = read(filefd, buffer, sizeof(buffer))) > 0) {
@@ -140,14 +164,23 @@ int ipv6_tcp_c(char* ip_address, int port){
             exit(EXIT_FAILURE);
         }
     }
+    gettimeofday(&end, NULL); // get end time after finish to send
+
 
     // Close the file and socket
     close(filefd);
     close(sockfd);
+    long seconds = end.tv_sec - start.tv_sec;
+    long useconds = end.tv_usec - start.tv_usec;
+    double elapsed = seconds * 1000.0 + useconds / 1000.0;
+    printf("Time taken in funnction: %.2f ms\n", elapsed);
+   
     return 0;
 }
 
 int ipv6_udp_c(int port){
+    struct timeval start, end;
+
     int sockfd, filefd, nbytes, n_sent;
     struct sockaddr_in6 serv_addr;
     char buffer[BUFFER_SIZE_C];
@@ -174,6 +207,8 @@ int ipv6_udp_c(int port){
         perror("inet_pton");
         exit(EXIT_FAILURE);
     }
+    
+    gettimeofday(&start, NULL); // get start time before send
 
     // Read from the file and send to the server
     while ((nbytes = read(filefd, buffer, sizeof(buffer))) > 0) {
@@ -185,6 +220,8 @@ int ipv6_udp_c(int port){
             fprintf(stderr, "sendto: Sent %d bytes instead of %d bytes\n", n_sent, nbytes);
         }
     }
+    
+    gettimeofday(&end, NULL); // get end time after finish to send
 
     // Close the file and socket
     if (close(filefd) < 0) {
@@ -195,11 +232,16 @@ int ipv6_udp_c(int port){
         perror("close");
         exit(EXIT_FAILURE);
     }
-
+    long seconds = end.tv_sec - start.tv_sec;
+    long useconds = end.tv_usec - start.tv_usec;
+    double elapsed = seconds * 1000.0 + useconds / 1000.0;
+    printf("Time taken in function: %.2f ms\n", elapsed);
     return 0;
 }
 
 int uds_stream_c() {
+    struct timeval start, end;
+
     int s, len;
     struct sockaddr_un remote = {
             .sun_family = AF_UNIX,
@@ -232,6 +274,8 @@ int uds_stream_c() {
             exit(1);
     }
     int file_size = st.st_size;
+    
+    gettimeofday(&start, NULL); // get start time before start to send
 
     // Send file size to server
     if (send(s, &file_size, sizeof(file_size), 0) < 0) {
@@ -255,13 +299,22 @@ int uds_stream_c() {
 
             total += n;
     }
+    gettimeofday(&end, NULL); // get end time after finish to send
 
     close(fd);
     close(s);
+
+    long seconds = end.tv_sec - start.tv_sec;
+    long useconds = end.tv_usec - start.tv_usec;
+    double elapsed = seconds * 1000.0 + useconds / 1000.0;
+    printf("Time taken in funnction: %.2f ms\n", elapsed);
+   
     return 0;
 }
 
 int uds_dgram_c() {
+    struct timeval start, end;
+
     int s;
     struct sockaddr_un remote = {
         .sun_family = AF_UNIX,
@@ -283,6 +336,8 @@ int uds_dgram_c() {
     // Get file size
     off_t file_size = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
+    
+    gettimeofday(&start, NULL); // get start time before start to send
 
     // Send file size to server
     if (sendto(s, &file_size, sizeof(file_size), 0, (struct sockaddr *)&remote, sizeof(remote)) < 0) {
@@ -299,16 +354,24 @@ int uds_dgram_c() {
             exit(1);
         }
     }
+    gettimeofday(&end, NULL); // get end time after finish to send
+
 
     close(fd);
     close(s);
-
+    long seconds = end.tv_sec - start.tv_sec;
+    long useconds = end.tv_usec - start.tv_usec;
+    double elapsed = seconds * 1000.0 + useconds / 1000.0;
+    printf("Time taken in funnction: %.2f ms\n", elapsed);
+    
     printf("File sent.\n");
 
     return 0;
 }
 
 int mmap_filename_c(int port){
+    struct timeval start, end;
+
     int sockfd, n;
     struct sockaddr_in serv_addr;
     const char *filename = "file.txt";
@@ -346,12 +409,16 @@ int mmap_filename_c(int port){
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
     serv_addr.sin_addr.s_addr = INADDR_ANY;
+    
+    gettimeofday(&start, NULL); // get start time before start to send
 
     // Send file data to server
     n = sendto(sockfd, filedata, filestat.st_size, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     if (n < 0) {
         error_c("Error sending data.");
     }
+        
+    gettimeofday(&end, NULL); // get end time after finish to send
 
     // Close file and socket
     close(fd);
@@ -361,11 +428,17 @@ int mmap_filename_c(int port){
     if (munmap(filedata, filestat.st_size) < 0) {
         error_c("Error unmapping file.");
     }
-
+    long seconds = end.tv_sec - start.tv_sec;
+    long useconds = end.tv_usec - start.tv_usec;
+    double elapsed = seconds * 1000.0 + useconds / 1000.0;
+    printf("Time taken in funnction: %.2f ms\n", elapsed);
+    
     return 0;
 }
 
 int pipe_filename_c() {
+    struct timeval start, end;
+
     int fd;
     char buffer[BUFFER_SIZE_C];
     ssize_t bytes_read;
@@ -384,17 +457,25 @@ int pipe_filename_c() {
         perror("Failed to open named pipe");
         exit(EXIT_FAILURE);
     }
+    
+    gettimeofday(&start, NULL); // get start time before start to send
 
     // Read data from the file and write it to the named pipe
     while ((bytes_read = fread(buffer, 1, BUFFER_SIZE_C, file)) > 0) {
         write(fd, buffer, bytes_read);
     }
+    gettimeofday(&end, NULL); // get end time after finish to send
 
     // Close the file and named pipe
     fclose(file);
     close(fd);
 
-    printf("File sent successfully.\n");
+    printf("File sent successfully.\n");/////
+    long seconds = end.tv_sec - start.tv_sec;
+    long useconds = end.tv_usec - start.tv_usec;
+    double elapsed = seconds * 1000.0 + useconds / 1000.0;
+    printf("Time taken in funnction: %.2f ms\n", elapsed);
+   
 
     return 0;
 

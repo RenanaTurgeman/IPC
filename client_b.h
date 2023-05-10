@@ -18,6 +18,7 @@
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <sys/time.h> //for measure times
 
 #define FIFO_NAME_C "myfifo"
 #define SERVER_IP_6_C "::1"
