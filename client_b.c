@@ -6,6 +6,7 @@ void error_c(const char *msg) {
 }
 
 int ipv4_tcp_c(char* ip_address , int port){
+    printf("ipv4_tcp,"); 
     struct timeval start, end;
 
     int sockfd, filefd, nbytes;
@@ -59,11 +60,12 @@ int ipv4_tcp_c(char* ip_address , int port){
     long seconds = end.tv_sec - start.tv_sec;
     long useconds = end.tv_usec - start.tv_usec;
     double elapsed = seconds * 1000.0 + useconds / 1000.0;
-    printf("Time taken in funnction: %.2f ms\n", elapsed);
+    printf("%.2f\n", elapsed);
     return 0;
 }
 
 int ipv4_udp_c(char* ip_address, int port){
+    printf("ipv4_udp,");
     struct timeval start, end;
 
     int sockfd, filefd, nbytes, n_sent;
@@ -113,12 +115,13 @@ int ipv4_udp_c(char* ip_address, int port){
     long seconds = end.tv_sec - start.tv_sec;
     long useconds = end.tv_usec - start.tv_usec;
     double elapsed = seconds * 1000.0 + useconds / 1000.0;
-    printf("Time taken in funnction: %.2f ms\n", elapsed);
+    printf("%.2f\n", elapsed); //in ms
     
     return 0;
 }
 
 int ipv6_tcp_c(char* ip_address, int port){
+    printf("ipv6_tcp,");
     struct timeval start, end;
 
     int sockfd, filefd, nbytes;
@@ -173,12 +176,13 @@ int ipv6_tcp_c(char* ip_address, int port){
     long seconds = end.tv_sec - start.tv_sec;
     long useconds = end.tv_usec - start.tv_usec;
     double elapsed = seconds * 1000.0 + useconds / 1000.0;
-    printf("Time taken in funnction: %.2f ms\n", elapsed);
+    printf("%.2f\n", elapsed); //in ms
    
     return 0;
 }
 
 int ipv6_udp_c(int port){
+    printf("ipv6_udp,");
     struct timeval start, end;
 
     int sockfd, filefd, nbytes, n_sent;
@@ -235,11 +239,12 @@ int ipv6_udp_c(int port){
     long seconds = end.tv_sec - start.tv_sec;
     long useconds = end.tv_usec - start.tv_usec;
     double elapsed = seconds * 1000.0 + useconds / 1000.0;
-    printf("Time taken in function: %.2f ms\n", elapsed);
+    printf("%.2f\n", elapsed); //ms
     return 0;
 }
 
 int uds_stream_c() {
+    printf("uds_stream,");
     struct timeval start, end;
 
     int s, len;
@@ -307,12 +312,13 @@ int uds_stream_c() {
     long seconds = end.tv_sec - start.tv_sec;
     long useconds = end.tv_usec - start.tv_usec;
     double elapsed = seconds * 1000.0 + useconds / 1000.0;
-    printf("Time taken in funnction: %.2f ms\n", elapsed);
+    printf("%.2f\n", elapsed);
    
     return 0;
 }
 
 int uds_dgram_c() {
+    printf("uds_dgram,");
     struct timeval start, end;
 
     int s;
@@ -362,14 +368,13 @@ int uds_dgram_c() {
     long seconds = end.tv_sec - start.tv_sec;
     long useconds = end.tv_usec - start.tv_usec;
     double elapsed = seconds * 1000.0 + useconds / 1000.0;
-    printf("Time taken in funnction: %.2f ms\n", elapsed);
+    printf("%.2f\n", elapsed);
     
-    printf("File sent.\n");
-
     return 0;
 }
 
 int mmap_filename_c(int port){
+    printf("mmap_filename,");
     struct timeval start, end;
 
     int sockfd, n;
@@ -431,12 +436,13 @@ int mmap_filename_c(int port){
     long seconds = end.tv_sec - start.tv_sec;
     long useconds = end.tv_usec - start.tv_usec;
     double elapsed = seconds * 1000.0 + useconds / 1000.0;
-    printf("Time taken in funnction: %.2f ms\n", elapsed);
+    printf("%.2f\n", elapsed);
     
     return 0;
 }
 
 int pipe_filename_c() {
+    printf("pipe_filename,");
     struct timeval start, end;
 
     int fd;
@@ -470,15 +476,12 @@ int pipe_filename_c() {
     fclose(file);
     close(fd);
 
-    printf("File sent successfully.\n");/////
     long seconds = end.tv_sec - start.tv_sec;
     long useconds = end.tv_usec - start.tv_usec;
     double elapsed = seconds * 1000.0 + useconds / 1000.0;
-    printf("Time taken in funnction: %.2f ms\n", elapsed);
+    printf("%.2f\n", elapsed);
    
-
     return 0;
-
 }
 
 void send_file(char* type, char* param , char* ip_address, int port){
@@ -529,9 +532,9 @@ int client_main_test(int argc, char *argv[]) {
     char ip_address[1024];
     int port;
     strcpy(ip_address, argv[2]);
-    printf("IP adress: %s\n", ip_address);
+    // printf("IP adress: %s\n", ip_address);
     port = atoi(argv[3]);
-    printf("Port: %d\n", port);
+    // printf("Port: %d\n", port);
 
     // Set up server address
     struct sockaddr_in serv_addr;
@@ -550,8 +553,8 @@ int client_main_test(int argc, char *argv[]) {
     char type[1024], param[1024];
     strcpy(type, argv[5]);
     strcpy(param, argv[6]);
-    printf("message1: %s\n", type);
-    printf("message2: %s\n", param);
+    // printf("type: %s\n", type);
+    // printf("param: %s\n", param);
 
     char data[2048];
     sprintf(data, "%s %s", type, param);

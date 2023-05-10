@@ -73,21 +73,8 @@ int ipv4_tcp(int port)
     close(connfd);
     close(sockfd);
 
-    // Print the contents of the file to the screen
-    FILE *fp = fopen("received_file.txt", "r");
-    if (fp == NULL)
-    {
-        perror("fopen");
-        exit(EXIT_FAILURE);
-    }
-    while (fgets(buffer, sizeof(buffer), fp) != NULL)
-    {
-        printf("%s", buffer);
-    }
-    fclose(fp);
     return 0;
 }
-
 int ipv4_udp(int port)
 {
     int sockfd, nbytes;
@@ -163,22 +150,10 @@ int ipv4_udp(int port)
         // Close the file
         close(filefd);
 
-        // Print the contents of the file to the screen
-        FILE *fp = fopen("received_file.txt", "r");
-        if (fp == NULL)
-        {
-            perror("fopen");
-            exit(EXIT_FAILURE);
-        }
-        while (fgets(buffer, sizeof(buffer), fp) != NULL)
-        {
-            printf("%s", buffer);
-        }
-        fclose(fp);
+        // Close the socket
+        close(sockfd);
+        break;
     }
-
-    // Close the socket
-    close(sockfd);
 
     return 0;
 }
@@ -250,18 +225,6 @@ int ipv6_tcp(int port)
     close(connfd);
     close(sockfd);
 
-    // Print the contents of the file to the screen
-    FILE *fp = fopen("received_file.txt", "r");
-    if (fp == NULL)
-    {
-        perror("fopen");
-        exit(EXIT_FAILURE);
-    }
-    while (fgets(buffer, sizeof(buffer), fp) != NULL)
-    {
-        printf("%s", buffer);
-    }
-    fclose(fp);
     return 0;
 }
 
@@ -332,18 +295,6 @@ int ipv6_udp(int port)
     close(filefd);
     close(sockfd);
 
-    // Print the contents of the file to the screen
-    FILE *fp = fopen("received_file.txt", "r");
-    if (fp == NULL)
-    {
-        perror("fopen");
-        exit(EXIT_FAILURE);
-    }
-    while (fgets(buffer, sizeof(buffer), fp) != NULL)
-    {
-        printf("%s", buffer);
-    }
-    fclose(fp);
     return 0;
 }
 
@@ -384,9 +335,6 @@ int uds_stream()
     fds[0].fd = s;
     fds[0].events = POLLIN;
 
-    while (1)
-    {
-        printf("Waiting for a connection...\n");
         int rv = poll(fds, 10, -1); // Wait for incoming data or events on the file descriptors in fds
         if (rv == -1)
         {
@@ -411,8 +359,6 @@ int uds_stream()
                         perror("accept");
                         exit(1);
                     }
-
-                    printf("Connected.\n");
 
                     // Read file size from client
                     int file_size;
@@ -452,17 +398,11 @@ int uds_stream()
                     close(fd);
                     close(s2);
 
-                    if (total == file_size)
-                    {
-                        printf("File transfer completed.\n");
-                    }
-                    else
-                    {
-                        printf("File transfer failed.\n");
+                    if(total!=file_size){ // if total == file_size so File transfer completed
+                        error("File transfer failed.\n");
                     }
                 }
             }
-        }
     }
 
     return 0;
@@ -494,8 +434,6 @@ int uds_dgram()
     struct pollfd ufds[1];
     ufds[0].fd = s;
     ufds[0].events = POLLIN;
-
-    printf("Waiting for a datagram...\n");
 
     int file_size = 0;
     while (1)
@@ -553,13 +491,8 @@ int uds_dgram()
     close(fd);
     close(s);
 
-    if (total == file_size)
-    {
-        printf("File transfer completed.\n");
-    }
-    else
-    {
-        printf("File transfer failed.\n");
+    if(total!=file_size){ // if total == file_size so File transfer completed
+        error("File transfer failed.\n");
     }
 
     return 0;
@@ -686,8 +619,6 @@ int pipe_filename()
     // Remove the named pipe file
     unlink(FIFO_NAME);
 
-    printf("File received successfully.\n");
-
     return 0;
 }
 
@@ -730,7 +661,7 @@ int server_main_test(int argc, char *argv[])
      if (argc < 5)
         error("Usage: stnc -s port -p (p for performance test) -q (q for quiet)");
     int port = atoi(argv[2]);
-    printf("Port: %d\n", port);
+    // printf("Port: %d\n", port);
     int server_fd, new_socket, valread;
     struct sockaddr_in address;
     int opt = 1;
@@ -776,30 +707,23 @@ int server_main_test(int argc, char *argv[])
     if (valread <= 0) {
         break;
     }
-    printf("%s\n", buffer);
+    // printf("%s\n", buffer); //print which kind
 
     // Parse data into parameters
      type = strtok(buffer, " ");
      param = strtok(NULL, " ");
 
-    printf("Type: %s\n", type);
-    printf("Param: %s\n", param);
+    // printf("Type: %s\n", type);
+    // printf("Param: %s\n", param);
 
-    received_file(type , param, port);
-    // break;
+    // received_file(type , param, port);
 }
 
 
     // Close the socket
     close(new_socket);
-
-    // Parse data into parameters
-        // char *type = strtok(buffer, " ");
-        // char *param = strtok(NULL, " ");
-
-        // printf("Type1: %s\n", type);
-        // printf("Param1: %s\n", param);
-
+    close(server_fd);
+    
     received_file(type , param, port);
     return 0;
 }
