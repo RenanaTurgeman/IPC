@@ -30,7 +30,7 @@ void error(const char *msg);
 int ipv4_tcp_c(char* ip_address , int port);
 int ipv4_udp_c(char* ip_address, int port);
 int ipv6_tcp_c(char* ip_address, int port);
-int ipv6_udp_c(int port);
+int ipv6_udp_c(char* ip_address, int port);
 int uds_stream_c();
 int uds_dgram_c();
 int mmap_filename_c(int port);

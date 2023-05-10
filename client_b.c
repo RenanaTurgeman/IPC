@@ -146,8 +146,9 @@ int ipv6_tcp_c(char* ip_address, int port){
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin6_family = AF_INET6;
     serv_addr.sin6_port = htons(port);
-    // if (inet_pton(AF_INET6, ip_address, &serv_addr.sin6_addr) <= 0) {
-    if (inet_pton(AF_INET6, SERVER_IP_6_C, &serv_addr.sin6_addr) <= 0) {
+    
+    if (inet_pton(AF_INET6, ip_address, &serv_addr.sin6_addr) <= 0) {
+    // if (inet_pton(AF_INET6, SERVER_IP_6_C, &serv_addr.sin6_addr) <= 0) {
         perror("inet_pton");
         exit(EXIT_FAILURE);
     }
@@ -181,7 +182,7 @@ int ipv6_tcp_c(char* ip_address, int port){
     return 0;
 }
 
-int ipv6_udp_c(int port){
+int ipv6_udp_c(char* ip_address, int port){
     printf("ipv6_udp,");
     struct timeval start, end;
 
@@ -195,6 +196,7 @@ int ipv6_udp_c(int port){
         perror("open");
         exit(EXIT_FAILURE);
     }
+    printf("after open the file");
 
     // Create a socket for the client
     sockfd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
@@ -202,15 +204,18 @@ int ipv6_udp_c(int port){
         perror("socket");
         exit(EXIT_FAILURE);
     }
+    printf("create socket");
 
     // Set up the server address
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin6_family = AF_INET6;
     serv_addr.sin6_port = htons(port);
-    if (inet_pton(AF_INET6, SERVER_IP_6_C, &serv_addr.sin6_addr) <= 0) {
+    if (inet_pton(AF_INET6, ip_address, &serv_addr.sin6_addr) <= 0) {
         perror("inet_pton");
         exit(EXIT_FAILURE);
     }
+    printf("after inet pton");
+
     
     gettimeofday(&start, NULL); // get start time before send
 
@@ -224,6 +229,8 @@ int ipv6_udp_c(int port){
             fprintf(stderr, "sendto: Sent %d bytes instead of %d bytes\n", n_sent, nbytes);
         }
     }
+    printf("after send");
+
     
     gettimeofday(&end, NULL); // get end time after finish to send
 
@@ -242,6 +249,7 @@ int ipv6_udp_c(int port){
     printf("%.2f\n", elapsed); //ms
     return 0;
 }
+
 
 int uds_stream_c() {
     printf("uds_stream,");
@@ -492,12 +500,11 @@ void send_file(char* type, char* param , char* ip_address, int port){
         ipv4_udp_c(ip_address, port);
     }
     else if(strcmp(type ,"ipv6") == 0 && (strcmp(param , "tcp")) == 0){
-   
-    ipv6_tcp_c(ip_address, port);
+        ipv6_tcp_c(ip_address, port);
     }
     else if(strcmp(type, "ipv6") == 0 && (strcmp(param, "udp")) == 0){
 
-    ipv6_udp_c(port);
+        ipv6_udp_c(ip_address ,port);
     }
 
     else if(strcmp(type, "mmap") == 0 && (strcmp(param, "filename")) == 0){
@@ -518,55 +525,119 @@ void send_file(char* type, char* param , char* ip_address, int port){
     }
 }
 
+// int client_main_test(int argc, char *argv[]) {
+//     if (argc < 7)
+//         error_c("Usage: stnc -c IP PORT -p <type> <param>");
+    
+//     // Set up socket
+//     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+//     if (sockfd < 0) {
+//         perror("Error opening socket");
+//         exit(1);
+//     }
+//     printf("open sock");
+
+//     char ip_address[1024];
+//     int port;
+//     strcpy(ip_address, argv[2]);
+
+//     printf("IP adress: %s\n", ip_address);
+//     port = atoi(argv[3]);
+//     printf("Port: %d\n", port);
+
+//     // Set up server address
+//     struct sockaddr_in serv_addr;
+//     memset(&serv_addr, 0, sizeof(serv_addr));
+//     serv_addr.sin_family = AF_INET;
+//     serv_addr.sin_port = htons(8081);
+//     serv_addr.sin_addr.s_addr = inet_addr(ip_address);  // Server IP address
+
+//     // Connect to server
+//     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+//         perror("Error connecting to server");
+//         exit(1);
+//     }
+//     printf("conect");
+
+//     // Send data over socket
+//     char type[1024], param[1024];
+//     strcpy(type, argv[5]);
+//     strcpy(param, argv[6]);
+//     // printf("type: %s\n", type);
+//     // printf("param: %s\n", param);
+
+//     char data[2048];
+//     sprintf(data, "%s %s", type, param);
+//     if (send(sockfd, data, strlen(data), 0) < 0) {
+//         perror("Error sending data");
+//         exit(1);
+//     }
+
+//     // Close socket
+//     close(sockfd);
+//     sleep(1);
+
+//     send_file(type , param , ip_address , port);
+//     return 0;
+// }
+
 int client_main_test(int argc, char *argv[]) {
     if (argc < 7)
         error_c("Usage: stnc -c IP PORT -p <type> <param>");
-    
-    // Set up socket
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        perror("Error opening socket");
-        exit(1);
-    }
-
-    char ip_address[1024];
+    //prase the data
+    char ip_address[15];
     int port;
     strcpy(ip_address, argv[2]);
-    // printf("IP adress: %s\n", ip_address);
+
+    printf("IP adress: %s\n", ip_address);
     port = atoi(argv[3]);
-    // printf("Port: %d\n", port);
-
-    // Set up server address
-    struct sockaddr_in serv_addr;
-    memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(8081);
-    serv_addr.sin_addr.s_addr = inet_addr(ip_address);  // Server IP address
-
-    // Connect to server
-    if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        perror("Error connecting to server");
-        exit(1);
-    }
-
-    // Send data over socket
-    char type[1024], param[1024];
+    printf("Port: %d\n", port);
+    
+    char type[15], param[15];
     strcpy(type, argv[5]);
     strcpy(param, argv[6]);
-    // printf("type: %s\n", type);
-    // printf("param: %s\n", param);
+    printf("type: %s\n", type);
+    printf("param: %s\n", param);
 
-    char data[2048];
-    sprintf(data, "%s %s", type, param);
-    if (send(sockfd, data, strlen(data), 0) < 0) {
-        perror("Error sending data");
+    int sockfd;
+    struct sockaddr_in server_addr;
+
+    // Create a socket for the client
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        perror("ERROR opening socket");
         exit(1);
     }
 
-    // Close socket
-    close(sockfd);
-    sleep(1);
+    // Fill in the server's address and port
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(port);
+    // serv_addr.sin_addr.s_addr = inet_addr(ip_address);  // Server IP address
 
+    if (inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr) <= 0) {
+        perror("ERROR invalid server IP address");
+        exit(1);
+    }
+
+    // Connect to the server
+    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+        perror("ERROR connecting");
+        exit(1);
+    }
+
+    char data[31];
+    sprintf(data, "%s %s", type, param);
+    // Send the data to the server
+    if (send(sockfd, data, strlen(data), 0) < 0) {
+        perror("ERROR sending data to server");
+        exit(1);
+    }
+
+    // Close the socket
+    close(sockfd);
+
+    sleep(1);
+    
     send_file(type , param , ip_address , port);
     return 0;
 }
