@@ -22,9 +22,9 @@
 
 #define FIFO_NAME_C "myfifo"
 #define SERVER_IP_6_C "::1"
-// #define SERVER_IP_6_C "2001:db8::1"
 #define BUFFER_SIZE_C 1024
 #define SOCK_PATH_C "echo_socket"
+#define SHM_NAME_C "/my_shm"
 
 
 void error(const char *msg);

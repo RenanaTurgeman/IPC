@@ -22,6 +22,7 @@
 #define BUFFER_SIZE 1024
 #define SOCK_PATH "echo_socket"
 #define FIFO_NAME "myfifo"
+#define SHM_NAME "/my_shm"
 
 
 
