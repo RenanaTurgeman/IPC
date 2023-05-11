@@ -33,10 +33,11 @@ int create_file(){
 int main(int argc, char *argv[])
 {
     int q=0;
-    if(strcmp(argv[4], "-q") == 0){ //quit mode
+    if(argc>3 &&strcmp(argv[3], "-q") == 0){ //quit mode
         q=1;
     }
-    if(strcmp(argv[1], "-c") == 0)
+
+    if(argc>2 && strcmp(argv[1], "-c") == 0)
     {
         if(argc >= 5 && strcmp(argv[4], "-p")==0)
         {
@@ -47,11 +48,11 @@ int main(int argc, char *argv[])
             main_chat(argc, argv);
         }
     }
-    else if(strcmp(argv[1], "-s") == 0)
+    else if(argc>2 &&strcmp(argv[1], "-s") == 0)
     {
         create_file(); //we run the server first so when we enter the server create the "file.txt"
 
-        if(argc >= 5 && strcmp(argv[3], "-p")==0)
+        if(argc >= 4 && strcmp(argv[2], "-p")==0)
         {
             server_main_test(argc, argv,q);
         }
@@ -62,3 +63,4 @@ int main(int argc, char *argv[])
     }
     return 0;
 }
+
