@@ -408,67 +408,11 @@ int uds_dgram_c()
 
     return 0;
 }
-/*
-int mmap_filename_c(char *ip_address, int port)
-{
-    sleep(2);
-    int fd;
-    void* addr;
-    struct stat sb;
-
-    // Open the file for reading
-    if ((fd = open("file.txt", O_RDONLY)) == -1) {
-        perror("open");
-        exit(EXIT_FAILURE);
-    }
-
-    // Get the size of the file
-    if (fstat(fd, &sb) == -1) {
-        perror("fstat");
-        exit(EXIT_FAILURE);
-    }
-
-    // Create a shared memory object
-    int shm_fd = shm_open(SHM_NAME_C, O_CREAT | O_RDWR, 0666);
-    if (shm_fd == -1) {
-        perror("shm_open");
-        exit(EXIT_FAILURE);
-    }
-
-    // Resize the shared memory object to match the size of the file
-    if (ftruncate(shm_fd, sb.st_size) == -1) {
-        perror("ftruncate");
-        exit(EXIT_FAILURE);
-    }
-
-    // Map the shared memory object into the address space of the calling process
-    addr = mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-    if (addr == MAP_FAILED) {
-        perror("mmap");
-        exit(EXIT_FAILURE);
-    }
-
-    // Copy the contents of the file into the shared memory object
-    if (read(fd, addr, sb.st_size) != sb.st_size) {
-        perror("read");
-        exit(EXIT_FAILURE);
-    }
-
-    // Unmap the shared memory object
-    if (munmap(addr, sb.st_size) == -1) {
-        perror("munmap");
-        exit(EXIT_FAILURE);
-    }
-
-    // Close the file and the shared memory object
-    close(fd);
-    close(shm_fd);
-    return 1;
-}
-*/
 
 int mmap_filename_c(char *ip_address, int port) {
     sleep(2);
+    printf("mmap,");
+    struct timeval start, end;
     int fd = open("file.txt", O_RDONLY);
     if (fd == -1) {
         perror("open");
@@ -492,6 +436,7 @@ int mmap_filename_c(char *ip_address, int port) {
         exit(EXIT_FAILURE);
     }
 
+    gettimeofday(&start, NULL); // get start time before start to send
     void *addr = mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
     if (addr == MAP_FAILED) {
         perror("mmap");
@@ -507,9 +452,16 @@ int mmap_filename_c(char *ip_address, int port) {
         perror("munmap");
         exit(EXIT_FAILURE);
     }
-
+    gettimeofday(&end, NULL); // get end time after finish to send
+    
     close(fd);
     close(shm_fd);
+    
+
+    long seconds = end.tv_sec - start.tv_sec;
+    long useconds = end.tv_usec - start.tv_usec;
+    double elapsed = seconds * 1000.0 + useconds / 1000.0;
+    printf("%.2f\n", elapsed);
 
     return 1;
 }

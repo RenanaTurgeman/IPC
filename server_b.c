@@ -6,7 +6,34 @@ void error(const char *msg)
     exit(1);
 }
 
-int ipv4_tcp(int port)
+// Function to calculate the checksum of a file
+unsigned int calc_checksum(char *filename)
+{
+    FILE *file = fopen(filename, "rb");
+    if (file == NULL)
+    {
+        perror("fopen");
+        exit(EXIT_FAILURE);
+    }
+
+    unsigned int checksum = 0;
+    char buffer[BUFFER_SIZE];
+    size_t nbytes;
+
+    while ((nbytes = fread(buffer, 1, sizeof(buffer), file)) > 0)
+    {
+        for (size_t i = 0; i < nbytes; i++)
+        {
+            checksum += buffer[i];
+        }
+    }
+
+    fclose(file);
+
+    return checksum;
+}
+
+int ipv4_tcp(int port, int isQuiet)
 {
     int sockfd, connfd, filefd, nbytes;
     struct sockaddr_in serv_addr, cli_addr;
@@ -73,10 +100,19 @@ int ipv4_tcp(int port)
     close(connfd);
     close(sockfd);
 
+    if (isQuiet == 0)
+    {
+        // Calculate the checksum of the received file
+        unsigned int checksum = calc_checksum("received_file.txt");
+        unsigned int checksum_client = calc_checksum("file.txt");
+        printf("Checksum of sent file: %u\n", checksum_client);
+        printf("Checksum of received file: %u\n", checksum);
+    }
+
     return 0;
 }
 
-int ipv4_udp(int port)
+int ipv4_udp(int port, int isQuiet)
 {
     int sockfd, filefd, nbytes;
     struct sockaddr_in serv_addr, cli_addr;
@@ -119,7 +155,7 @@ int ipv4_udp(int port)
 
     // Receive data from the client and write it to the file
     int total_bytes_received = 0;
-    int timeout_ms = 2000; // Wait up to 1 second for data
+    int timeout_ms = 2000;                           // Wait up to 1 second for data
     while (total_bytes_received < 100 * 1024 * 1024) // Receive 100MB file
     {
         int pollret = poll(pollfds, 1, timeout_ms);
@@ -154,11 +190,19 @@ int ipv4_udp(int port)
     // Close the file and socket
     close(filefd);
     close(sockfd);
+    if (isQuiet == 0)
+    {
+        // Calculate the checksum of the received file
+        unsigned int checksum = calc_checksum("received_file.txt");
+        unsigned int checksum_client = calc_checksum("file.txt");
+        printf("Checksum of sent file: %u\n", checksum_client);
+        printf("Checksum of received file: %u\n", checksum);
+    }
 
     return 0;
 }
 
-int ipv6_tcp(int port)
+int ipv6_tcp(int port, int isQuiet)
 {
     int sockfd, connfd, filefd, nbytes;
     struct sockaddr_in6 serv_addr, cli_addr;
@@ -224,11 +268,19 @@ int ipv6_tcp(int port)
     close(filefd);
     close(connfd);
     close(sockfd);
+    if (isQuiet == 0)
+    {
+        // Calculate the checksum of the received file
+        unsigned int checksum = calc_checksum("received_file.txt");
+        unsigned int checksum_client = calc_checksum("file.txt");
+        printf("Checksum of sent file: %u\n", checksum_client);
+        printf("Checksum of received file: %u\n", checksum);
+    }
 
     return 0;
 }
 
-int ipv6_udp(int port)
+int ipv6_udp(int port, int isQuiet)
 {
     int sockfd, filefd, nbytes;
     struct sockaddr_in6 serv_addr, cli_addr;
@@ -271,7 +323,7 @@ int ipv6_udp(int port)
 
     // Receive data from the client and write it to the file
     int total_bytes_received = 0;
-    int timeout_ms = 2000; // Wait up to 2 seconds for data
+    int timeout_ms = 2000;                           // Wait up to 2 seconds for data
     while (total_bytes_received < 100 * 1024 * 1024) // Receive 100MB file
     {
         int pollret = poll(pollfds, 1, timeout_ms);
@@ -306,11 +358,19 @@ int ipv6_udp(int port)
     // Close the file and socket
     close(filefd);
     close(sockfd);
+    if (isQuiet == 0)
+    {
+        // Calculate the checksum of the received file
+        unsigned int checksum = calc_checksum("received_file.txt");
+        unsigned int checksum_client = calc_checksum("file.txt");
+        printf("Checksum of sent file: %u\n", checksum_client);
+        printf("Checksum of received file: %u\n", checksum);
+    }
 
     return 0;
 }
 
-int uds_stream()
+int uds_stream(int isQuiet)
 {
     int s, s2, len, fd;
     struct sockaddr_un remote, local = {
@@ -347,80 +407,89 @@ int uds_stream()
     fds[0].fd = s;
     fds[0].events = POLLIN;
 
-        int rv = poll(fds, 10, -1); // Wait for incoming data or events on the file descriptors in fds
-        if (rv == -1)
-        {
-            perror("poll");
-            exit(1);
+    int rv = poll(fds, 10, -1); // Wait for incoming data or events on the file descriptors in fds
+    if (rv == -1)
+    {
+        perror("poll");
+        exit(1);
+    }
+
+    for (int i = 0; i < 10; i++)
+    {
+        if (fds[i].revents == 0)
+        { // If there are no events waiting for this file descriptor, skip to the next one
+            continue;
         }
 
-        for (int i = 0; i < 10; i++)
-        {
-            if (fds[i].revents == 0)
-            { // If there are no events waiting for this file descriptor, skip to the next one
-                continue;
-            }
+        if (fds[i].revents & POLLIN)
+        { // If there is incoming data waiting for this file descriptor...
+            if (fds[i].fd == s)
+            { // ...and it's the socket we're listening on...
+                socklen_t slen = sizeof(remote);
+                if ((s2 = accept(s, (struct sockaddr *)&remote, &slen)) == -1)
+                {
+                    perror("accept");
+                    exit(1);
+                }
 
-            if (fds[i].revents & POLLIN)
-            { // If there is incoming data waiting for this file descriptor...
-                if (fds[i].fd == s)
-                { // ...and it's the socket we're listening on...
-                    socklen_t slen = sizeof(remote);
-                    if ((s2 = accept(s, (struct sockaddr *)&remote, &slen)) == -1)
+                // Read file size from client
+                int file_size;
+                if (recv(s2, &file_size, sizeof(file_size), 0) < 0)
+                {
+                    perror("recv");
+                    exit(1);
+                }
+
+                // Read file data from client and save to file
+                if ((fd = open("received_file.txt", O_CREAT | O_WRONLY, 0644)) < 0)
+                {
+                    perror("open");
+                    exit(1);
+                }
+
+                int total = 0, n;
+                while (total < file_size)
+                {
+                    n = recv(s2, buf, sizeof(buf), 0);
+                    if (n <= 0)
                     {
-                        perror("accept");
-                        exit(1);
+                        if (n < 0)
+                            perror("recv");
+                        break;
                     }
 
-                    // Read file size from client
-                    int file_size;
-                    if (recv(s2, &file_size, sizeof(file_size), 0) < 0)
+                    if (write(fd, buf, n) < 0)
                     {
-                        perror("recv");
-                        exit(1);
+                        perror("write");
+                        break;
                     }
 
-                    // Read file data from client and save to file
-                    if ((fd = open("received_file.txt", O_CREAT | O_WRONLY, 0644)) < 0)
-                    {
-                        perror("open");
-                        exit(1);
-                    }
+                    total += n;
+                }
 
-                    int total = 0, n;
-                    while (total < file_size)
-                    {
-                        n = recv(s2, buf, sizeof(buf), 0);
-                        if (n <= 0)
-                        {
-                            if (n < 0)
-                                perror("recv");
-                            break;
-                        }
+                close(fd);
+                close(s2);
 
-                        if (write(fd, buf, n) < 0)
-                        {
-                            perror("write");
-                            break;
-                        }
-
-                        total += n;
-                    }
-
-                    close(fd);
-                    close(s2);
-
-                    if(total!=file_size){ // if total == file_size so File transfer completed
-                        error("File transfer failed.\n");
-                    }
+                if (total != file_size)
+                { // if total == file_size so File transfer completed
+                    error("File transfer failed.\n");
                 }
             }
+        }
+    }
+    if (isQuiet == 0)
+    {
+        // Calculate the checksum of the received file
+        unsigned int checksum = calc_checksum("received_file.txt");
+        unsigned int checksum_client = calc_checksum("file.txt");
+        printf("Checksum of sent file: %u\n", checksum_client);
+        printf("Checksum of received file: %u\n", checksum);
     }
 
     return 0;
 }
 
-int uds_dgram()
+int uds_dgram(int isQuiet)
 {
     int s, len, fd;
     struct sockaddr_un local = {
@@ -503,70 +572,23 @@ int uds_dgram()
     close(fd);
     close(s);
 
-    if(total!=file_size){ // if total == file_size so File transfer completed
+    if (total != file_size)
+    { // if total == file_size so File transfer completed
         error("File transfer failed.\n");
+    }
+    if (isQuiet == 0)
+    {
+        // Calculate the checksum of the received file
+        unsigned int checksum = calc_checksum("received_file.txt");
+        unsigned int checksum_client = calc_checksum("file.txt");
+        printf("Checksum of sent file: %u\n", checksum_client);
+        printf("Checksum of received file: %u\n", checksum);
     }
 
     return 0;
 }
-/*
-int mmap_filename(int port)
-{
-    int fd;
-    void* addr;
-    struct stat sb;
 
-    // Open the file for writing
-    if ((fd = open("recieve_file.txt", O_WRONLY | O_CREAT | O_TRUNC, 0666)) == -1) {
-        perror("open");
-        exit(EXIT_FAILURE);
-    }
-
-    // Open the shared memory object for reading
-    int shm_fd = shm_open(SHM_NAME, O_RDONLY, 0666);
-    if (shm_fd == -1) {
-        perror("shm_open");
-        exit(EXIT_FAILURE);
-    }
-
-    // Get the size of the shared memory object
-    if (fstat(shm_fd, &sb) == -1) {
-        perror("fstat");
-        exit(EXIT_FAILURE);
-    }
-
-    // Map the shared memory object into the address space of the calling process
-    addr = mmap(NULL, sb.st_size, PROT_READ, MAP_SHARED, shm_fd, 0);
-    if (addr == MAP_FAILED) {
-        perror("mmap");
-        exit(EXIT_FAILURE);
-    }
-
-    // Write the contents of the shared memory object to the file
-    if (write(fd, addr, sb.st_size) != sb.st_size) {
-        perror("write");
-        exit(EXIT_FAILURE);
-    }
-
-    // Unmap the shared memory object
-    if (munmap(addr, sb.st_size) == -1) {
-        perror("munmap");
-        exit(EXIT_FAILURE);
-    }
-
-    // Close the file and the shared memory object
-    close(fd);
-    close(shm_fd);
-
-    // Remove the shared memory object
-    if (shm_unlink(SHM_NAME) == -1) {
-        perror("shm_unlink");
-        exit(EXIT_FAILURE);
-    }
-}
-*/
-
-int mmap_filename(int port)
+int mmap_filename(int port, int isQuiet)
 {
     int fd;
     void *addr;
@@ -574,39 +596,45 @@ int mmap_filename(int port)
 
     // Open the file for writing
     fd = open("recieve_file.txt", O_WRONLY | O_CREAT | O_TRUNC, 0666);
-    if (fd == -1) {
+    if (fd == -1)
+    {
         perror("open");
         exit(EXIT_FAILURE);
     }
 
     // Open the shared memory object for reading
     int shm_fd = shm_open(SHM_NAME, O_RDONLY, 0666);
-    if (shm_fd == -1) {
+    if (shm_fd == -1)
+    {
         perror("shm_open");
         exit(EXIT_FAILURE);
     }
 
     // Get the size of the shared memory object
-    if (fstat(shm_fd, &sb) == -1) {
+    if (fstat(shm_fd, &sb) == -1)
+    {
         perror("fstat");
         exit(EXIT_FAILURE);
     }
 
     // Map the shared memory object into the address space of the calling process
     addr = mmap(NULL, sb.st_size, PROT_READ, MAP_SHARED, shm_fd, 0);
-    if (addr == MAP_FAILED) {
+    if (addr == MAP_FAILED)
+    {
         perror("mmap");
         exit(EXIT_FAILURE);
     }
 
     // Write the contents of the shared memory object to the file
-    if (write(fd, addr, sb.st_size) != sb.st_size) {
+    if (write(fd, addr, sb.st_size) != sb.st_size)
+    {
         perror("write");
         exit(EXIT_FAILURE);
     }
 
     // Unmap the shared memory object
-    if (munmap(addr, sb.st_size) == -1) {
+    if (munmap(addr, sb.st_size) == -1)
+    {
         perror("munmap");
         exit(EXIT_FAILURE);
     }
@@ -616,15 +644,24 @@ int mmap_filename(int port)
     close(shm_fd);
 
     // Remove the shared memory object
-    if (shm_unlink(SHM_NAME) == -1) {
+    if (shm_unlink(SHM_NAME) == -1)
+    {
         perror("shm_unlink");
         exit(EXIT_FAILURE);
+    }
+    if (isQuiet == 0)
+    {
+        // Calculate the checksum of the received file
+        unsigned int checksum = calc_checksum("received_file.txt");
+        unsigned int checksum_client = calc_checksum("file.txt");
+        printf("Checksum of sent file: %u\n", checksum_client);
+        printf("Checksum of received file: %u\n", checksum);
     }
 
     return 0;
 }
 
-int pipe_filename()
+int pipe_filename(int isQuiet)
 {
     int fd;
     char buffer[BUFFER_SIZE];
@@ -661,47 +698,64 @@ int pipe_filename()
 
     // Remove the named pipe file
     unlink(FIFO_NAME);
+    if (isQuiet == 0)
+    {
+        // Calculate the checksum of the received file
+        unsigned int checksum = calc_checksum("received_file.txt");
+        unsigned int checksum_client = calc_checksum("file.txt");
+        printf("Checksum of sent file: %u\n", checksum_client);
+        printf("Checksum of received file: %u\n", checksum);
+    }
 
     return 0;
 }
 
-void received_file(char* type , char* param, int port){
-      if(strcmp(type,"ipv4") == 0 && (strcmp(param, "tcp"))== 0){
-        ipv4_tcp(port);
+void received_file(char *type, char *param, int port, int isQuiet)
+{
+    if (strcmp(type, "ipv4") == 0 && (strcmp(param, "tcp")) == 0)
+    {
+        ipv4_tcp(port, isQuiet);
     }
-    else if(strcmp(type ,"ipv4") == 0 && (strcmp(param , "udp")) == 0){
-        ipv4_udp(port);
+    else if (strcmp(type, "ipv4") == 0 && (strcmp(param, "udp")) == 0)
+    {
+        ipv4_udp(port, isQuiet);
     }
-    else if(strcmp(type ,"ipv6") == 0 && (strcmp(param , "tcp")) == 0){
-   
-    ipv6_tcp(port);
-    }
-    else if(strcmp(type, "ipv6") == 0 && (strcmp(param, "udp")) == 0){
+    else if (strcmp(type, "ipv6") == 0 && (strcmp(param, "tcp")) == 0)
+    {
 
-   ipv6_udp(port);
+        ipv6_tcp(port, isQuiet);
+    }
+    else if (strcmp(type, "ipv6") == 0 && (strcmp(param, "udp")) == 0)
+    {
+
+        ipv6_udp(port, isQuiet);
     }
 
-    else if(strcmp(type, "mmap") == 0 && (strcmp(param, "filename")) == 0){
-    
-    mmap_filename(port);
-    }
-    else if(strcmp(type ,"pipe") == 0 && (strcmp(param , "filename")) == 0){
+    else if (strcmp(type, "mmap") == 0 && (strcmp(param, "filename")) == 0)
+    {
 
-    pipe_filename();
+        mmap_filename(port, isQuiet);
     }
-        else if(strcmp(type ,"uds") == 0 && (strcmp(param ,"dgram")) == 0){
-   
-    uds_dgram();
+    else if (strcmp(type, "pipe") == 0 && (strcmp(param, "filename")) == 0)
+    {
+
+        pipe_filename(isQuiet);
     }
-    else if(strcmp(type ,"uds") == 0 && (strcmp(param, "stream")) == 0){
-    
-    uds_stream();
+    else if (strcmp(type, "uds") == 0 && (strcmp(param, "dgram")) == 0)
+    {
+
+        uds_dgram(isQuiet);
+    }
+    else if (strcmp(type, "uds") == 0 && (strcmp(param, "stream")) == 0)
+    {
+
+        uds_stream(isQuiet);
     }
 }
 
 int server_main_test(int argc, char *argv[])
 {
-     if (argc < 5)
+    if (argc < 4)
         error("Usage: stnc -s port -p (p for performance test) -q (q for quiet)");
     int port = atoi(argv[2]);
     // printf("Port: %d\n", port);
@@ -712,13 +766,15 @@ int server_main_test(int argc, char *argv[])
     char buffer[BUFFER_SIZE] = {0};
 
     // Create socket file descriptor
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    {
         perror("socket failed");
         exit(EXIT_FAILURE);
     }
 
     // Attach socket to the port 8081
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)))
+    {
         perror("setsockopt");
         exit(EXIT_FAILURE);
     }
@@ -727,46 +783,56 @@ int server_main_test(int argc, char *argv[])
     address.sin_port = htons(8081);
 
     // Bind the socket to the specified port
-    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
+    {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
 
     // Start listening for incoming connections
-    if (listen(server_fd, 3) < 0) {
+    if (listen(server_fd, 3) < 0)
+    {
         perror("listen");
         exit(EXIT_FAILURE);
     }
 
     // Wait for incoming connection and accept it
-    if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
+    if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0)
+    {
         perror("accept");
         exit(EXIT_FAILURE);
     }
-    char *type ,*param;
+    char *type, *param;
     // Receive messages from the client and print them to the console
-    while (1) {
-    valread = read(new_socket, buffer, BUFFER_SIZE);
-    if (valread <= 0) {
-        break;
+    while (1)
+    {
+        valread = read(new_socket, buffer, BUFFER_SIZE);
+        if (valread <= 0)
+        {
+            break;
+        }
+        // printf("%s\n", buffer); //print which kind
+
+        // Parse data into parameters
+        type = strtok(buffer, " ");
+        param = strtok(NULL, " ");
+
+        // printf("Type: %s\n", type);
+        // printf("Param: %s\n", param);
+
+        // received_file(type , param, port);
     }
-    // printf("%s\n", buffer); //print which kind
-
-    // Parse data into parameters
-     type = strtok(buffer, " ");
-     param = strtok(NULL, " ");
-
-    // printf("Type: %s\n", type);
-    // printf("Param: %s\n", param);
-
-    // received_file(type , param, port);
-}
-
 
     // Close the socket
     close(new_socket);
     close(server_fd);
-    
-    received_file(type , param, port);
+
+    int isQuiet = 0;
+    if (argc >= 5 && strcmp(argv[4], "-q") == 0)
+    {
+        isQuiet = 1;
+    }
+    received_file(type, param, port, isQuiet);
+    // received_file(type, param, port, isQuiet);
     return 0;
 }

@@ -27,13 +27,14 @@
 
 
 void error(const char *msg);
-int ipv4_tcp(int port);
-int ipv4_udp(int port);
-int ipv6_tcp(int port);
-int ipv6_udp(int port);
-int uds_stream();
-int uds_dgram();
-int mmap_filename(int port);
-int pipe_filename();
-void received_file(char* type , char* param, int port);
+unsigned int calc_checksum(char *filename);
+int ipv4_tcp(int port, int isQuiet);
+int ipv4_udp(int port, int isQuiet);
+int ipv6_tcp(int port, int isQuiet);
+int ipv6_udp(int port, int isQuiet);
+int uds_stream(int isQuiet);
+int uds_dgram(int isQuiet);
+int mmap_filename(int port, int isQuiet);
+int pipe_filename(int isQuiet);
+void received_file(char* type , char* param, int port, int isQuiet);
 int server_main_test(int argc, char *argv[]);
