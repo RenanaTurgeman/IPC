@@ -32,12 +32,15 @@ int create_file(){
 }
 int main(int argc, char *argv[])
 {
-    create_file();
+    int q=0;
+    if(strcmp(argv[4], "-q") == 0){ //quit mode
+        q=1;
+    }
     if(strcmp(argv[1], "-c") == 0)
     {
         if(argc >= 5 && strcmp(argv[4], "-p")==0)
         {
-            client_main_test(argc, argv);
+            client_main_test(argc, argv,q);
         }
         else
         {
@@ -46,9 +49,11 @@ int main(int argc, char *argv[])
     }
     else if(strcmp(argv[1], "-s") == 0)
     {
+        create_file(); //we run the server first so when we enter the server create the "file.txt"
+
         if(argc >= 5 && strcmp(argv[3], "-p")==0)
         {
-            server_main_test(argc, argv);
+            server_main_test(argc, argv,q);
         }
         else
         {

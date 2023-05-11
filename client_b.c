@@ -4,7 +4,7 @@ void error_c(const char *msg) {
     perror(msg);
     exit(1);
 }
-void checksum_c(const char *filename)
+void checksum_c(const char *filename, int q)
 {
     FILE *file;
     char buffer[BUFFER_SIZE_C];
@@ -26,12 +26,13 @@ void checksum_c(const char *filename)
         }
     }
 
-    printf("checksum = %llu\n", sum);
+    if(q)
+        printf("checksum = %llu\n", sum);
 
     fclose(file);
 }
 
-int ipv4_tcp_c(char* ip_address , int port){
+int ipv4_tcp_c(char* ip_address , int port, int q){
     printf("ipv4_tcp,"); 
     struct timeval start, end;
 
@@ -39,7 +40,7 @@ int ipv4_tcp_c(char* ip_address , int port){
     struct sockaddr_in serv_addr;
     char buffer[BUFFER_SIZE_C];
 
-    checksum_c("file.txt");
+    checksum_c("file.txt",q);
     // Open the file for reading
     filefd = open("file.txt", O_RDONLY);
     if (filefd < 0) {
@@ -91,7 +92,7 @@ int ipv4_tcp_c(char* ip_address , int port){
     return 0;
 }
 
-int ipv4_udp_c(char* ip_address, int port){
+int ipv4_udp_c(char* ip_address, int port, int q){
     printf("ipv4_udp,");
     struct timeval start, end;
 
@@ -99,7 +100,7 @@ int ipv4_udp_c(char* ip_address, int port){
     struct sockaddr_in serv_addr;
     char buffer[BUFFER_SIZE_C];
     
-    checksum_c("file.txt");
+    checksum_c("file.txt",q);
 
     // Open the file for reading
     filefd = open("file.txt", O_RDONLY);
@@ -149,14 +150,14 @@ int ipv4_udp_c(char* ip_address, int port){
     return 0;
 }
 
-int ipv6_tcp_c(char* ip_address, int port){
+int ipv6_tcp_c(char* ip_address, int port, int q){
     printf("ipv6_tcp,");
     struct timeval start, end;
 
     int sockfd, filefd, nbytes;
     struct sockaddr_in6 serv_addr;
     char buffer[BUFFER_SIZE_C];
-    checksum_c("file.txt");
+    checksum_c("file.txt",q);
 
     // Open the file for reading
     filefd = open("file.txt", O_RDONLY);
@@ -212,14 +213,14 @@ int ipv6_tcp_c(char* ip_address, int port){
     return 0;
 }
 
-int ipv6_udp_c(char* ip_address, int port){
+int ipv6_udp_c(char* ip_address, int port, int q){
     printf("ipv6_udp,");
     struct timeval start, end;
 
     int sockfd, filefd, nbytes, n_sent;
     struct sockaddr_in6 serv_addr;
     char buffer[BUFFER_SIZE_C];
-    checksum_c("file.txt");
+    checksum_c("file.txt",q);
 
     // Open the file for reading
     filefd = open("file.txt", O_RDONLY);
@@ -275,7 +276,7 @@ int ipv6_udp_c(char* ip_address, int port){
     return 0;
 }
 
-int uds_stream_c() {
+int uds_stream_c(int q) {
     printf("uds_stream,");
     struct timeval start, end;
 
@@ -296,7 +297,8 @@ int uds_stream_c() {
             perror("connect");
             exit(1);
     }
-    checksum_c("file.txt");
+    checksum_c("file.txt",q);
+
 
     // Open file to be sent
     int fd;
@@ -350,7 +352,7 @@ int uds_stream_c() {
     return 0;
 }
 
-int uds_dgram_c() {
+int uds_dgram_c(int q) {
     printf("uds_dgram,");
     struct timeval start, end;
 
@@ -364,7 +366,7 @@ int uds_dgram_c() {
         perror("socket");
         exit(1);
     }
-    checksum_c("file.txt");
+    checksum_c("file.txt",q);
 
     // Open the file to send
     int fd;
@@ -406,7 +408,7 @@ int uds_dgram_c() {
     
     return 0;
 }
-//    checksum_c("file.txt"); add to mmap
+//        checksum_c("file.txt" ,q); add to mmap
 
 // int mmap_filename_c(int port){
 //     printf("mmap_filename,");
@@ -476,7 +478,7 @@ int uds_dgram_c() {
 //     return 0;
 // }
 /*adi*/
-int mmap_filename_c(int port) {
+int mmap_filename_c(int port, int q) {
     struct sockaddr_in serv_addr;
     struct stat filestat;
     int fd = open("file.txt", O_RDONLY);
@@ -534,7 +536,7 @@ int mmap_filename_c(int port) {
 }
 /*adi*/
 
-int pipe_filename_c() {
+int pipe_filename_c(int q) {
     printf("pipe_filename,");
     struct timeval start, end;
 
@@ -542,7 +544,7 @@ int pipe_filename_c() {
     char buffer[BUFFER_SIZE_C];
     ssize_t bytes_read;
     FILE* file;
-    checksum_c("file.txt");
+    checksum_c("file.txt" ,q);
 
     // Open the file to be sent
     file = fopen("file.txt", "r");
@@ -578,96 +580,41 @@ int pipe_filename_c() {
     return 0;
 }
 
-void send_file(char* type, char* param , char* ip_address, int port){
+void send_file(char* type, char* param , char* ip_address, int port,int q){
     if(strcmp(type,"ipv4") == 0 && (strcmp(param, "tcp"))== 0){
-        ipv4_tcp_c(ip_address, port);
+        ipv4_tcp_c(ip_address, port, q);
     }
     else if(strcmp(type ,"ipv4") == 0 && (strcmp(param , "udp")) == 0){
-        ipv4_udp_c(ip_address, port);
+        ipv4_udp_c(ip_address, port,q);
     }
     else if(strcmp(type ,"ipv6") == 0 && (strcmp(param , "tcp")) == 0){
-        ipv6_tcp_c(ip_address, port);
+        ipv6_tcp_c(ip_address, port,q);
     }
     else if(strcmp(type, "ipv6") == 0 && (strcmp(param, "udp")) == 0){
 
-        ipv6_udp_c(ip_address ,port);
+        ipv6_udp_c(ip_address ,port,q);
     }
 
     else if(strcmp(type, "mmap") == 0 && (strcmp(param, "filename")) == 0){
     
-    mmap_filename_c(port);
+    mmap_filename_c(port,q);
     }
     else if(strcmp(type ,"pipe") == 0 && (strcmp(param , "filename")) == 0){
 
-    pipe_filename_c();
+    pipe_filename_c(q);
     }
     else if(strcmp(type ,"uds") == 0 && (strcmp(param ,"dgram")) == 0){
    
-    uds_dgram_c();
+    uds_dgram_c(q);
     }
     else if(strcmp(type ,"uds") == 0 && (strcmp(param, "stream")) == 0){
     
-    uds_stream_c();
+    uds_stream_c(q);
     }
 }
 
-// int client_main_test(int argc, char *argv[]) {
-//     if (argc < 7)
-//         error_c("Usage: stnc -c IP PORT -p <type> <param>");
-    
-//     // Set up socket
-//     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-//     if (sockfd < 0) {
-//         perror("Error opening socket");
-//         exit(1);
-//     }
-//     printf("open sock");
 
-//     char ip_address[1024];
-//     int port;
-//     strcpy(ip_address, argv[2]);
-
-//     printf("IP adress: %s\n", ip_address);
-//     port = atoi(argv[3]);
-//     printf("Port: %d\n", port);
-
-//     // Set up server address
-//     struct sockaddr_in serv_addr;
-//     memset(&serv_addr, 0, sizeof(serv_addr));
-//     serv_addr.sin_family = AF_INET;
-//     serv_addr.sin_port = htons(8081);
-//     serv_addr.sin_addr.s_addr = inet_addr(ip_address);  // Server IP address
-
-//     // Connect to server
-//     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-//         perror("Error connecting to server");
-//         exit(1);
-//     }
-//     printf("conect");
-
-//     // Send data over socket
-//     char type[1024], param[1024];
-//     strcpy(type, argv[5]);
-//     strcpy(param, argv[6]);
-//     // printf("type: %s\n", type);
-//     // printf("param: %s\n", param);
-
-//     char data[2048];
-//     sprintf(data, "%s %s", type, param);
-//     if (send(sockfd, data, strlen(data), 0) < 0) {
-//         perror("Error sending data");
-//         exit(1);
-//     }
-
-//     // Close socket
-//     close(sockfd);
-//     sleep(1);
-
-//     send_file(type , param , ip_address , port);
-//     return 0;
-// }
-
-int client_main_test(int argc, char *argv[]) {
+int client_main_test(int argc, char *argv[],int q) {
     if (argc < 7)
         error_c("Usage: stnc -c IP PORT -p <type> <param>");
     //prase the data
@@ -724,6 +671,6 @@ int client_main_test(int argc, char *argv[]) {
 
     sleep(1);
     
-    send_file(type , param , ip_address , port);
+    send_file(type , param , ip_address , port, q);
     return 0;
 }
