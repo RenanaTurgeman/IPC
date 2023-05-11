@@ -6,6 +6,33 @@ void error(const char *msg)
     exit(1);
 }
 
+void checksum(const char *filename)
+{
+    FILE *file;
+    char buffer[BUFFER_SIZE];
+    size_t bytes_read;
+    unsigned long long sum = 0;
+
+    file = fopen(filename, "rb");
+    if (file == NULL)
+    {
+        printf("Failed to open the file.\n");
+        return;
+    }
+
+    while ((bytes_read = fread(buffer, sizeof(char), BUFFER_SIZE, file)) != 0)
+    {
+        for (size_t i = 0; i < bytes_read; i++)
+        {
+            sum += buffer[i];
+        }
+    }
+
+    printf("checksum = %llu\n", sum);
+
+    fclose(file);
+}
+
 int ipv4_tcp(int port)
 {
     int sockfd, connfd, filefd, nbytes;
@@ -72,6 +99,8 @@ int ipv4_tcp(int port)
     close(filefd);
     close(connfd);
     close(sockfd);
+
+    checksum("received_file.txt");
 
     return 0;
 }
@@ -154,6 +183,7 @@ int ipv4_udp(int port)
         close(sockfd);
         break;
     }
+    checksum("file.txt");
 
     return 0;
 }
@@ -224,6 +254,7 @@ int ipv6_tcp(int port)
     close(filefd);
     close(connfd);
     close(sockfd);
+    checksum("file.txt");
 
     return 0;
 }
@@ -294,6 +325,7 @@ int ipv6_udp(int port)
     // Close the file and socket
     close(filefd);
     close(sockfd);
+    checksum("file.txt");
 
     return 0;
 }
@@ -404,6 +436,7 @@ int uds_stream()
                 }
             }
     }
+    checksum("file.txt");
 
     return 0;
 }
@@ -494,9 +527,11 @@ int uds_dgram()
     if(total!=file_size){ // if total == file_size so File transfer completed
         error("File transfer failed.\n");
     }
+    checksum("file.txt");
 
     return 0;
 }
+//    checksum("file.txt"); add to mmap
 
 // int mmap_filename(int port)
 // {
@@ -782,6 +817,7 @@ int pipe_filename()
 
     // Remove the named pipe file
     unlink(FIFO_NAME);
+    checksum("file.txt");
 
     return 0;
 }

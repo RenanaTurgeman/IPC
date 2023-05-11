@@ -37,3 +37,4 @@ int mmap_filename_c(int port);
 int pipe_filename_c();
 void send_file_c(char* type, char* param , char* ip_address, int port);
 int client_main_test(int argc, char *argv[]);
+void checksum_c(const char *filename);

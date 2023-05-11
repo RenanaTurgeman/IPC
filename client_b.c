@@ -4,6 +4,32 @@ void error_c(const char *msg) {
     perror(msg);
     exit(1);
 }
+void checksum_c(const char *filename)
+{
+    FILE *file;
+    char buffer[BUFFER_SIZE_C];
+    size_t bytes_read;
+    unsigned long long sum = 0;
+
+    file = fopen(filename, "rb");
+    if (file == NULL)
+    {
+        printf("Failed to open the file.\n");
+        return;
+    }
+
+    while ((bytes_read = fread(buffer, sizeof(char), BUFFER_SIZE_C, file)) != 0)
+    {
+        for (size_t i = 0; i < bytes_read; i++)
+        {
+            sum += buffer[i];
+        }
+    }
+
+    printf("checksum = %llu\n", sum);
+
+    fclose(file);
+}
 
 int ipv4_tcp_c(char* ip_address , int port){
     printf("ipv4_tcp,"); 
@@ -13,6 +39,7 @@ int ipv4_tcp_c(char* ip_address , int port){
     struct sockaddr_in serv_addr;
     char buffer[BUFFER_SIZE_C];
 
+    checksum_c("file.txt");
     // Open the file for reading
     filefd = open("file.txt", O_RDONLY);
     if (filefd < 0) {
@@ -71,6 +98,8 @@ int ipv4_udp_c(char* ip_address, int port){
     int sockfd, filefd, nbytes, n_sent;
     struct sockaddr_in serv_addr;
     char buffer[BUFFER_SIZE_C];
+    
+    checksum_c("file.txt");
 
     // Open the file for reading
     filefd = open("file.txt", O_RDONLY);
@@ -127,6 +156,7 @@ int ipv6_tcp_c(char* ip_address, int port){
     int sockfd, filefd, nbytes;
     struct sockaddr_in6 serv_addr;
     char buffer[BUFFER_SIZE_C];
+    checksum_c("file.txt");
 
     // Open the file for reading
     filefd = open("file.txt", O_RDONLY);
@@ -189,6 +219,7 @@ int ipv6_udp_c(char* ip_address, int port){
     int sockfd, filefd, nbytes, n_sent;
     struct sockaddr_in6 serv_addr;
     char buffer[BUFFER_SIZE_C];
+    checksum_c("file.txt");
 
     // Open the file for reading
     filefd = open("file.txt", O_RDONLY);
@@ -265,6 +296,7 @@ int uds_stream_c() {
             perror("connect");
             exit(1);
     }
+    checksum_c("file.txt");
 
     // Open file to be sent
     int fd;
@@ -332,6 +364,7 @@ int uds_dgram_c() {
         perror("socket");
         exit(1);
     }
+    checksum_c("file.txt");
 
     // Open the file to send
     int fd;
@@ -373,6 +406,7 @@ int uds_dgram_c() {
     
     return 0;
 }
+//    checksum_c("file.txt"); add to mmap
 
 // int mmap_filename_c(int port){
 //     printf("mmap_filename,");
@@ -508,6 +542,7 @@ int pipe_filename_c() {
     char buffer[BUFFER_SIZE_C];
     ssize_t bytes_read;
     FILE* file;
+    checksum_c("file.txt");
 
     // Open the file to be sent
     file = fopen("file.txt", "r");

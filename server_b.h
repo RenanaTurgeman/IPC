@@ -35,3 +35,4 @@ int mmap_filename(int port);
 int pipe_filename();
 void received_file(char* type , char* param, int port);
 int server_main_test(int argc, char *argv[]);
+void checksum(const char *filename);
