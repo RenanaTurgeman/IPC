@@ -6,7 +6,7 @@ void error(const char *msg)
     exit(1);
 }
 
-void checksum(const char *filename, int q)
+void checksum_s(const char *filename)
 {
     FILE *file;
     char buffer[BUFFER_SIZE];
@@ -28,13 +28,12 @@ void checksum(const char *filename, int q)
         }
     }
 
-    if(q)
-        printf("checksum = %llu\n", sum);
+    printf("checksum = %llu\n", sum);
 
     fclose(file);
 }
 
-int ipv4_tcp(int port, int q)
+int ipv4_tcp(int port, int isQuiet)
 {
     int sockfd, connfd, filefd, nbytes;
     struct sockaddr_in serv_addr, cli_addr;
@@ -96,24 +95,28 @@ int ipv4_tcp(int port, int q)
         }
     }
 
+    if(isQuiet)
+    {
+        checksum_s("received_file.txt");
+    }
+
     // Close the file and socket
     close(filefd);
     close(connfd);
     close(sockfd);
 
-    checksum("received_file.txt",q);
-
     return 0;
 }
-int ipv4_udp(int port, int q)
+
+int ipv4_udp(int port, int isQuiet)
 {
-    int sockfd, nbytes;
+    int sockfd, filefd, nbytes;
     struct sockaddr_in serv_addr, cli_addr;
     socklen_t cli_len;
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE * 1024];
 
     // Create a socket for the server
-    sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0)
     {
         perror("socket");
@@ -133,63 +136,61 @@ int ipv4_udp(int port, int q)
         exit(EXIT_FAILURE);
     }
 
-    // Set up the pollfd structure for the socket
+    // Set up poll for waiting on the socket
     struct pollfd pollfds[1];
     pollfds[0].fd = sockfd;
     pollfds[0].events = POLLIN;
 
-    // Receive data from a client and write it to a file
-    int num_ready;
-    while (1)
+    // Open a file for writing
+    filefd = open("received_file.txt", O_CREAT | O_WRONLY, 0644);
+    if (filefd < 0)
     {
-        // Wait for data to become available on the socket
-        num_ready = poll(pollfds, 1, -1);
-        if (num_ready < 0)
+        perror("open");
+        exit(EXIT_FAILURE);
+    }
+
+    // Receive data from the client and write it to the file
+    int total_bytes_received = 0;
+    int timeout_ms = 2000;                           // Wait up to 1 second for data
+    while (total_bytes_received < 100 * 1024 * 1024) // Receive 100MB file
+    {
+        int pollret = poll(pollfds, 1, timeout_ms);
+        if (pollret < 0)
         {
             perror("poll");
             exit(EXIT_FAILURE);
         }
-        else if (num_ready == 0)
+        else if (pollret == 0) // Timeout
         {
-            continue;
+            // printf("Timeout waiting for data.\n");
+            break;
         }
-
-        // If there is data available, receive it and write it to a file
-        cli_len = sizeof(cli_addr);
-        if ((nbytes = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&cli_addr, &cli_len)) < 0)
+        else // Data available
         {
-            perror("recvfrom");
-            exit(EXIT_FAILURE);
+            cli_len = sizeof(cli_addr);
+            nbytes = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *)&cli_addr, &cli_len);
+            if (nbytes < 0)
+            {
+                perror("recvfrom");
+                exit(EXIT_FAILURE);
+            }
+            total_bytes_received += nbytes;
+            if (write(filefd, buffer, nbytes) != nbytes)
+            {
+                perror("write");
+                exit(EXIT_FAILURE);
+            }
         }
-
-        // Open a file for writing
-        int filefd = open("received_file.txt", O_CREAT | O_WRONLY | O_APPEND, 0644);
-        if (filefd < 0)
-        {
-            perror("open");
-            exit(EXIT_FAILURE);
-        }
-
-        // Write the received data to the file
-        if (write(filefd, buffer, nbytes) != nbytes)
-        {
-            perror("write");
-            exit(EXIT_FAILURE);
-        }
-
-        // Close the file
-        close(filefd);
-
-        // Close the socket
-        close(sockfd);
-        break;
     }
-    checksum("file.txt",q);
+
+    // Close the file and socket
+    close(filefd);
+    close(sockfd);
 
     return 0;
 }
 
-int ipv6_tcp(int port, int q)
+int ipv6_tcp(int port, int isQuiet)
 {
     int sockfd, connfd, filefd, nbytes;
     struct sockaddr_in6 serv_addr, cli_addr;
@@ -255,20 +256,19 @@ int ipv6_tcp(int port, int q)
     close(filefd);
     close(connfd);
     close(sockfd);
-    checksum("file.txt",q);
 
     return 0;
 }
 
-int ipv6_udp(int port, int q)
+int ipv6_udp(int port, int isQuiet)
 {
     int sockfd, filefd, nbytes;
     struct sockaddr_in6 serv_addr, cli_addr;
     socklen_t cli_len;
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE * 1024];
 
     // Create a socket for the server
-    sockfd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+    sockfd = socket(AF_INET6, SOCK_DGRAM, 0);
     if (sockfd < 0)
     {
         perror("socket");
@@ -288,25 +288,10 @@ int ipv6_udp(int port, int q)
         exit(EXIT_FAILURE);
     }
 
-    // Set up the poll structure
-    struct pollfd fds[1];
-    fds[0].fd = sockfd;
-    fds[0].events = POLLIN;
-
-    // Wait for data to arrive on the socket
-    if (poll(fds, 1, -1) < 0)
-    {
-        perror("poll");
-        exit(EXIT_FAILURE);
-    }
-
-    // Receive data from a client and write it to a file
-    cli_len = sizeof(cli_addr);
-    if ((nbytes = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&cli_addr, &cli_len)) < 0)
-    {
-        perror("recvfrom");
-        exit(EXIT_FAILURE);
-    }
+    // Set up poll for waiting on the socket
+    struct pollfd pollfds[1];
+    pollfds[0].fd = sockfd;
+    pollfds[0].events = POLLIN;
 
     // Open a file for writing
     filefd = open("received_file.txt", O_CREAT | O_WRONLY, 0644);
@@ -316,22 +301,48 @@ int ipv6_udp(int port, int q)
         exit(EXIT_FAILURE);
     }
 
-    // Write data to the file
-    if (write(filefd, buffer, nbytes) != nbytes)
+    // Receive data from the client and write it to the file
+    int total_bytes_received = 0;
+    int timeout_ms = 2000;                           // Wait up to 2 seconds for data
+    while (total_bytes_received < 100 * 1024 * 1024) // Receive 100MB file
     {
-        perror("write");
-        exit(EXIT_FAILURE);
+        int pollret = poll(pollfds, 1, timeout_ms);
+        if (pollret < 0)
+        {
+            perror("poll");
+            exit(EXIT_FAILURE);
+        }
+        else if (pollret == 0) // Timeout
+        {
+            // printf("Timeout waiting for data.\n");
+            break;
+        }
+        else // Data available
+        {
+            cli_len = sizeof(cli_addr);
+            nbytes = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *)&cli_addr, &cli_len);
+            if (nbytes < 0)
+            {
+                perror("recvfrom");
+                exit(EXIT_FAILURE);
+            }
+            total_bytes_received += nbytes;
+            if (write(filefd, buffer, nbytes) != nbytes)
+            {
+                perror("write");
+                exit(EXIT_FAILURE);
+            }
+        }
     }
 
     // Close the file and socket
     close(filefd);
     close(sockfd);
-    checksum("file.txt",q);
 
     return 0;
 }
 
-int uds_stream(int q)
+int uds_stream(int isQuiet)
 {
     int s, s2, len, fd;
     struct sockaddr_un remote, local = {
@@ -368,81 +379,81 @@ int uds_stream(int q)
     fds[0].fd = s;
     fds[0].events = POLLIN;
 
-        int rv = poll(fds, 10, -1); // Wait for incoming data or events on the file descriptors in fds
-        if (rv == -1)
-        {
-            perror("poll");
-            exit(1);
+    int rv = poll(fds, 10, -1); // Wait for incoming data or events on the file descriptors in fds
+    if (rv == -1)
+    {
+        perror("poll");
+        exit(1);
+    }
+
+    for (int i = 0; i < 10; i++)
+    {
+        if (fds[i].revents == 0)
+        { // If there are no events waiting for this file descriptor, skip to the next one
+            continue;
         }
 
-        for (int i = 0; i < 10; i++)
-        {
-            if (fds[i].revents == 0)
-            { // If there are no events waiting for this file descriptor, skip to the next one
-                continue;
-            }
+        if (fds[i].revents & POLLIN)
+        { // If there is incoming data waiting for this file descriptor...
+            if (fds[i].fd == s)
+            { // ...and it's the socket we're listening on...
+                socklen_t slen = sizeof(remote);
+                if ((s2 = accept(s, (struct sockaddr *)&remote, &slen)) == -1)
+                {
+                    perror("accept");
+                    exit(1);
+                }
 
-            if (fds[i].revents & POLLIN)
-            { // If there is incoming data waiting for this file descriptor...
-                if (fds[i].fd == s)
-                { // ...and it's the socket we're listening on...
-                    socklen_t slen = sizeof(remote);
-                    if ((s2 = accept(s, (struct sockaddr *)&remote, &slen)) == -1)
+                // Read file size from client
+                int file_size;
+                if (recv(s2, &file_size, sizeof(file_size), 0) < 0)
+                {
+                    perror("recv");
+                    exit(1);
+                }
+
+                // Read file data from client and save to file
+                if ((fd = open("received_file.txt", O_CREAT | O_WRONLY, 0644)) < 0)
+                {
+                    perror("open");
+                    exit(1);
+                }
+
+                int total = 0, n;
+                while (total < file_size)
+                {
+                    n = recv(s2, buf, sizeof(buf), 0);
+                    if (n <= 0)
                     {
-                        perror("accept");
-                        exit(1);
+                        if (n < 0)
+                            perror("recv");
+                        break;
                     }
 
-                    // Read file size from client
-                    int file_size;
-                    if (recv(s2, &file_size, sizeof(file_size), 0) < 0)
+                    if (write(fd, buf, n) < 0)
                     {
-                        perror("recv");
-                        exit(1);
+                        perror("write");
+                        break;
                     }
 
-                    // Read file data from client and save to file
-                    if ((fd = open("received_file.txt", O_CREAT | O_WRONLY, 0644)) < 0)
-                    {
-                        perror("open");
-                        exit(1);
-                    }
+                    total += n;
+                }
 
-                    int total = 0, n;
-                    while (total < file_size)
-                    {
-                        n = recv(s2, buf, sizeof(buf), 0);
-                        if (n <= 0)
-                        {
-                            if (n < 0)
-                                perror("recv");
-                            break;
-                        }
+                close(fd);
+                close(s2);
 
-                        if (write(fd, buf, n) < 0)
-                        {
-                            perror("write");
-                            break;
-                        }
-
-                        total += n;
-                    }
-
-                    close(fd);
-                    close(s2);
-
-                    if(total!=file_size){ // if total == file_size so File transfer completed
-                        error("File transfer failed.\n");
-                    }
+                if (total != file_size)
+                { // if total == file_size so File transfer completed
+                    error("File transfer failed.\n");
                 }
             }
+        }
     }
-    checksum("file.txt",q);
 
     return 0;
 }
 
-int uds_dgram(int q)
+int uds_dgram(int isQuiet)
 {
     int s, len, fd;
     struct sockaddr_un local = {
@@ -525,263 +536,176 @@ int uds_dgram(int q)
     close(fd);
     close(s);
 
-    if(total!=file_size){ // if total == file_size so File transfer completed
+    if (total != file_size)
+    { // if total == file_size so File transfer completed
         error("File transfer failed.\n");
     }
-    checksum("file.txt",q);
 
     return 0;
 }
-//    checksum("file.txt"); add to mmap
 
-// int mmap_filename(int port)
-// {
-//     // Define the socket and client address structures
-//     int sockfd;
-//     struct sockaddr_in serv_addr, client_addr;
-
-//     // Define the length of the client address
-//     socklen_t clientlen = sizeof(client_addr);
-
-//     // Define the buffer to store the received data
-//     char buffer[BUFFER_SIZE];
-
-//     // Define the file to write the received data
-//     FILE *file;
-
-//     // Create a socket
-//     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-//     if (sockfd < 0)
-//     {
-//         perror("Error opening socket.");
-//         exit(EXIT_FAILURE);
-//     }
-
-//     // Initialize the server address structure
-//     memset((char *)&serv_addr, 0, sizeof(serv_addr));
-//     serv_addr.sin_family = AF_INET;
-//     serv_addr.sin_addr.s_addr = INADDR_ANY;
-//     serv_addr.sin_port = htons(port);
-
-//     // Bind the socket to the server address and port
-//     if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-//     {
-//         perror("Error on binding.");
-//         exit(EXIT_FAILURE);
-//     }
-
-//     // Display the server listening message
-//     printf("Server listening on port %d...\n", port);
-
-//     // Open the file for writing the received data
-//     file = fopen("received_text.txt", "w");
-//     if (file == NULL)
-//     {
-//         perror("Error opening file.");
-//         exit(EXIT_FAILURE);
-//     }
-
-//     // Create a pollfd structure to monitor the socket for activity
-//     struct pollfd fds[1];
-//     fds[0].fd = sockfd;
-//     fds[0].events = POLLIN;
-
-//     // Wait for activity on the socket
-//     while (poll(fds, 1, -1) >= 0)
-//     {
-//         // Receive data from the client
-//         bzero(buffer, BUFFER_SIZE);
-//         int n = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr *)&client_addr, &clientlen);
-//         if (n < 0)
-//         {
-//             perror("Error receiving data.");
-//             exit(EXIT_FAILURE);
-//         }
-
-//         // Print the received data and write it to the file
-//         printf("Received message: %s\n", buffer);
-//         fprintf(file, "%s", buffer);
-
-//         // Close the file and socket
-//         fclose(file);
-//         close(sockfd);
-
-//         // Exit the program
-//         exit(EXIT_SUCCESS);
-//     }
-
-//     // If the poll function fails, display an error message and exit
-//     perror("Error on poll.");
-//     exit(EXIT_FAILURE);
-
-//     return 0;
-// }
-int mmap_filename(int port, int q)
+int mmap_filename(int port, int isQuiet)
 {
-    // Define the socket and client address structures
-    int sockfd;
     struct sockaddr_in serv_addr, client_addr;
-
-    // Define the length of the client address
-    socklen_t clientlen = sizeof(client_addr);
-
-    // Define the buffer to store the received data
-    char buffer[BUFFER_SIZE];
-
-    // Define the file to write the received data
-    FILE *file;
-
-    // Create a socket
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    char buffer[4906];
+    struct pollfd fds[1];
+    int timeout = 5000;
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0)
     {
-        perror("Error opening socket.");
-        exit(EXIT_FAILURE);
+        perror("socket");
+        return -1;
     }
-
-    // Initialize the server address structure
+    int optval = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0)
+    {
+        perror("setsockopt");
+        close(sockfd);
+        return -1;
+    }
     memset((char *)&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(port);
-
-    // Bind the socket to the server address and port
     if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
-        perror("Error on binding.");
-        exit(EXIT_FAILURE);
+        perror("bind");
+        close(sockfd);
+        return -1;
     }
-
-    // Display the server listening message
-    printf("Server listening on port %d...\n", port);
-
-    // Open the file for writing the received data
-    file = fopen("received_text.txt", "w");
-    if (file == NULL)
-    {
-        perror("Error opening file.");
-        exit(EXIT_FAILURE);
-    }
-
-    // Create a pollfd structure to monitor the socket for activity
-    struct pollfd fds[1];
     fds[0].fd = sockfd;
     fds[0].events = POLLIN;
 
-    // Wait for activity on the socket
+    struct timeval start_time, end_time;
+    gettimeofday(&start_time, NULL);
+    int bite = 0;
+
     while (1)
     {
-        if (poll(fds, 1, -1) < 0)
+        int ret = poll(fds, 1, timeout);
+        if (ret == -1)
         {
-            perror("Error on poll.");
-            exit(EXIT_FAILURE);
+            perror("poll");
+            close(sockfd);
+            return -1;
         }
-
-        if (fds[0].revents & POLLIN)
+        else if (ret == 0)
         {
-            // Receive data from the client
-            bzero(buffer, BUFFER_SIZE);
-            int n = recvfrom(sockfd, buffer, 1024*1024*100, 0, (struct sockaddr *)&client_addr, &clientlen);
-            if (n < 0)
+            break;
+        }
+        else
+        {
+            if (fds[0].revents & POLLIN)
             {
-                perror("Error receiving data.");
-                exit(EXIT_FAILURE);
-            }
+                bzero(buffer, 4096);
+                socklen_t clientlen = sizeof(client_addr);
 
-            // Print the received data and write it to the file
-            printf("Received message: %s\n", buffer);
-            fwrite(buffer, 1, n, file);
+                int n = recvfrom(sockfd, buffer, 4096 - 1, 0, (struct sockaddr *)&client_addr, &clientlen);
+                bite += n;
+                if (n < 0)
+                {
+                    perror("recvfrom");
+                    close(sockfd);
+                    return -1;
+                }
+            }
         }
     }
+    printf("%d\n", bite);
+    gettimeofday(&end_time, NULL);
 
-    // Close the file and socket
-    fclose(file);
+    long start_sec = start_time.tv_sec;
+    long start_usec = start_time.tv_usec;
+    long end_sec = end_time.tv_sec;
+    long end_usec = end_time.tv_usec;
+    long start_time_micros = start_sec * 1000000 + start_usec;
+    long end_time_micros = end_sec * 1000000 + end_usec;
+    long time = end_time_micros - start_time_micros;
+
     close(sockfd);
+    printf("time = %ld", time);
+    return time;
+}
+/*
+int mmap_filename(int port)
+{
+    const int flags = O_WRONLY | O_CREAT | O_TRUNC;
+    const int mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+    const size_t offset = 0;
 
+    int file_desc = open("file.txt", flags, mode);
+    if (file_desc == -1) {
+        perror("open");
+        exit(EXIT_FAILURE);
+    }
+
+    int shared_mem_desc = shm_open(SHM_NAME, O_RDONLY, mode);
+    if (shared_mem_desc == -1) {
+        perror("shm_open");
+        exit(EXIT_FAILURE);
+    }
+
+    struct stat shared_mem_stats;
+    if (fstat(shared_mem_desc, &shared_mem_stats) == -1) {
+        perror("fstat");
+        exit(EXIT_FAILURE);
+    }
+
+    void *addr = mmap(NULL, shared_mem_stats.st_size, PROT_READ, MAP_SHARED, shared_mem_desc, offset);
+    if (addr == MAP_FAILED) {
+        perror("mmap");
+        exit(EXIT_FAILURE);
+    }
+
+    ssize_t bytes_written = write(file_desc, addr, shared_mem_stats.st_size);
+    if (bytes_written != shared_mem_stats.st_size) {
+        perror("write");
+        exit(EXIT_FAILURE);
+    }
+
+    // Open a new file for writing
+    int new_file_desc = open("recieve_file.txt", O_WRONLY | O_CREAT | O_TRUNC, mode);
+    if (new_file_desc == -1) {
+        perror("open");
+        exit(EXIT_FAILURE);
+    }
+
+    // Write the contents of the shared memory object to the new file
+    if (write(new_file_desc, addr, shared_mem_stats.st_size) != shared_mem_stats.st_size) {
+        perror("write");
+        exit(EXIT_FAILURE);
+    }
+
+    // Close the new file
+    if (close(new_file_desc) == -1) {
+        perror("close");
+        exit(EXIT_FAILURE);
+    }
+
+    if (munmap(addr, shared_mem_stats.st_size) == -1) {
+        perror("munmap");
+        exit(EXIT_FAILURE);
+    }
+
+    if (close(file_desc) == -1) {
+        perror("close");
+        exit(EXIT_FAILURE);
+    }
+
+    if (close(shared_mem_desc) == -1) {
+        perror("close");
+        exit(EXIT_FAILURE);
+    }
+
+    if (shm_unlink(SHM_NAME) == -1) {
+        perror("shm_unlink");
+        exit(EXIT_FAILURE);
+    }
     return 0;
 }
-/*adi*/
-// int mmap_filename(int port) {
-//    struct sockaddr_in serv_addr, client_addr;
-//     char buffer[BUFFER_SIZE];
-//     struct pollfd fds[1];
-//     int timeout = 5000;
-//     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-//     if (sockfd < 0) {
-//         perror("socket");
-//         return -1;
-//     }
-//     memset((char *)&serv_addr, 0, sizeof(serv_addr));
-//     serv_addr.sin_family = AF_INET;
-//     serv_addr.sin_addr.s_addr = INADDR_ANY;
-//     serv_addr.sin_port = htons(port);
-//     if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-//         perror("bind");
-//         close(sockfd);
-//         return -1;
-//     }
-//     fds[0].fd = sockfd;
-//     fds[0].events = POLLIN;
+*/
 
-//     // struct timeval current_time1;
-//     // gettimeofday(&current_time1, NULL);
-//     // long start1_sec = current_time1.tv_sec;
-//     // long start1_mic = current_time1.tv_usec; 
-//     // long total_start1 = start1_sec*1000000 + start1_mic;
-
-//     while (1) {
-//         int ret = poll(fds, 1, timeout);
-//         if (ret == -1) {
-//             perror("poll");
-//             close(sockfd);
-//             return -1;
-//         } else if (ret == 0) {
-//             break;
-//         } else {
-//             if (fds[0].revents & POLLIN) {
-//                 bzero(buffer, BUFFER_SIZE);
-//                 socklen_t clientlen = sizeof(client_addr);
-
-//                 int n = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr *)&client_addr, &clientlen);
-//                 if (n < 0) {
-//                     perror("recvfrom");
-//                     close(sockfd);
-//                     return -1;
-//                 }
-
-//                 // open a new file named "received_file" in write mode
-//                 FILE *fp = fopen("received_file", "w");
-//                 if (fp == NULL) {
-//                     perror("fopen");
-//                     return -1;
-//                 }
-
-//                 // write the received data to the file
-//                 size_t bytes_written = fwrite(buffer, 1, n, fp);
-//                 if (bytes_written < n) {
-//                     perror("fwrite");
-//                     fclose(fp);
-//                     return -1;
-//                 }
-
-//                 fclose(fp);
-//             }
-//         }
-//     }
-
-//     // gettimeofday(&current_time1, NULL);
-//     // long end1_sec = current_time1.tv_sec;
-//     // long end1_mic = current_time1.tv_usec; 
-//     // long total_end1 = end1_sec*1000000 + end1_mic;
-    
-//     // long time = total_end1 - total_start1;
-
-//     close(sockfd);
-//     return 0;
-// }
-/*adi*/
-
-int pipe_filename(int q)
+int pipe_filename(int isQuiet)
 {
     int fd;
     char buffer[BUFFER_SIZE];
@@ -818,112 +742,135 @@ int pipe_filename(int q)
 
     // Remove the named pipe file
     unlink(FIFO_NAME);
-    checksum("file.txt",q);
 
     return 0;
 }
 
-void received_file(char* type , char* param, int port,int q){
-      if(strcmp(type,"ipv4") == 0 && (strcmp(param, "tcp"))== 0){
-        ipv4_tcp(port,q);
+void received_file(char *type, char *param, int port, int isQuiet)
+{
+    if (strcmp(type, "ipv4") == 0 && (strcmp(param, "tcp")) == 0)
+    {
+        ipv4_tcp(port, isQuiet);
     }
-    else if(strcmp(type ,"ipv4") == 0 && (strcmp(param , "udp")) == 0){
-        ipv4_udp(port,q);
+    else if (strcmp(type, "ipv4") == 0 && (strcmp(param, "udp")) == 0)
+    {
+        ipv4_udp(port, isQuiet);
     }
-    else if(strcmp(type ,"ipv6") == 0 && (strcmp(param , "tcp")) == 0){
-   
-    ipv6_tcp(port,q);
-    }
-    else if(strcmp(type, "ipv6") == 0 && (strcmp(param, "udp")) == 0){
+    else if (strcmp(type, "ipv6") == 0 && (strcmp(param, "tcp")) == 0)
+    {
 
-   ipv6_udp(port,q);
+        ipv6_tcp(port, isQuiet);
+    }
+    else if (strcmp(type, "ipv6") == 0 && (strcmp(param, "udp")) == 0)
+    {
+
+        ipv6_udp(port, isQuiet);
     }
 
-    else if(strcmp(type, "mmap") == 0 && (strcmp(param, "filename")) == 0){
-    
-    mmap_filename(port,q);
-    }
-    else if(strcmp(type ,"pipe") == 0 && (strcmp(param , "filename")) == 0){
+    else if (strcmp(type, "mmap") == 0 && (strcmp(param, "filename")) == 0)
+    {
 
-    pipe_filename(q);
+        mmap_filename(port, isQuiet);
     }
-        else if(strcmp(type ,"uds") == 0 && (strcmp(param ,"dgram")) == 0){
-   
-    uds_dgram(q);
+    else if (strcmp(type, "pipe") == 0 && (strcmp(param, "filename")) == 0)
+    {
+
+        pipe_filename(isQuiet);
     }
-    else if(strcmp(type ,"uds") == 0 && (strcmp(param, "stream")) == 0){
-    
-    uds_stream(q);
+    else if (strcmp(type, "uds") == 0 && (strcmp(param, "dgram")) == 0)
+    {
+
+        uds_dgram( isQuiet);
+    }
+    else if (strcmp(type, "uds") == 0 && (strcmp(param, "stream")) == 0)
+    {
+
+        uds_stream(isQuiet);
     }
 }
 
-
-int server_main_test(int argc, char *argv[], int q){
-    if (argc < 5)
+int server_main_test(int argc, char *argv[])
+{
+    if (argc < 4)
         error("Usage: stnc -s port -p (p for performance test) -q (q for quiet)");
     int port = atoi(argv[2]);
+    // printf("Port: %d\n", port);
+    int server_fd, new_socket, valread;
+    struct sockaddr_in address;
+    int opt = 1;
+    int addrlen = sizeof(address);
+    char buffer[BUFFER_SIZE] = {0};
 
-    int sockfd, newsockfd;
-    socklen_t clilen;
-    char buffer[BUFFER_SIZE];
-    struct sockaddr_in serv_addr, cli_addr;
-    int n;
-
-    // Create a socket for the server
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        perror("ERROR opening socket");
-        exit(1);
+    // Create socket file descriptor
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    {
+        perror("socket failed");
+        exit(EXIT_FAILURE);
     }
 
-    // Fill in the server's address and port
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(port);
+    // Attach socket to the port 8081
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)))
+    {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(8081);
 
-    // Bind the socket to the server's address and port
-    if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
-        perror("ERROR on binding");
-        exit(1);
+    // Bind the socket to the specified port
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
+    {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
     }
 
-    // Listen for incoming connections
-    int ls = listen(sockfd, 5);
-    if (ls < 0) {
+    // Start listening for incoming connections
+    if (listen(server_fd, 3) < 0)
+    {
         perror("listen");
         exit(EXIT_FAILURE);
     }
 
-    // Accept a connection from a client
-    clilen = sizeof(cli_addr);
-    newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-    if (newsockfd < 0) {
-        perror("ERROR on accept");
-        exit(1);
+    // Wait for incoming connection and accept it
+    if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0)
+    {
+        perror("accept");
+        exit(EXIT_FAILURE);
+    }
+    char *type, *param;
+    int isQuiet = 0;
+    // Receive messages from the client and print them to the console
+    while (1)
+    {
+        valread = read(new_socket, buffer, BUFFER_SIZE);
+        if (valread <= 0)
+        {
+            break;
+        }
+        // printf("%s\n", buffer); //print which kind
+
+        // Parse data into parameters
+        type = strtok(buffer, " ");
+        param = strtok(NULL, " ");
+
+        
+        char q[10];
+        if (argc > 4 && strcmp(argv[3], "-q") == 0)
+        {
+            isQuiet = 1;
+        }
+
+        // printf("Type: %s\n", type);
+        // printf("Param: %s\n", param);
+
+        // received_file(type , param, port);
     }
 
-    // Receive data from the client
-    bzero(buffer, BUFFER_SIZE);
-    n = recv(newsockfd, buffer, BUFFER_SIZE-1, 0);
-    if (n < 0) {
-        perror("ERROR receiving data from client");
-        exit(1);
-    }
+    // Close the socket
+    close(new_socket);
+    close(server_fd);
 
-    // Print the received data
-    // printf("Received data from client: %s\n", buffer);
-    // Parse data into parameters
-    char *type ,*param;
-    type = strtok(buffer, " ");
-    param = strtok(NULL, " ");
-
-    // printf("Type: %s\n", type);
-    // printf("Param: %s\n", param);
-
-    // Close the sockets
-    close(newsockfd);
-    close(sockfd);
-    received_file(type , param, port,q);
+    received_file(type, param, port, isQuiet);
     return 0;
 }
-

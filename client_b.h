@@ -24,17 +24,19 @@
 #define SERVER_IP_6_C "::1"
 #define BUFFER_SIZE_C 1024
 #define SOCK_PATH_C "echo_socket"
-
+#define SHM_NAME "/my_shm"
+#define BUFFER_SIZE 1024
 
 void error(const char *msg);
-int ipv4_tcp_c(char* ip_address , int port, int q);
-int ipv4_udp_c(char* ip_address, int port, int q);
-int ipv6_tcp_c(char* ip_address, int port, int q);
-int ipv6_udp_c(char* ip_address, int port, int q);
-int uds_stream_c(int q);
-int uds_dgram_c(int q);
-int mmap_filename_c(int port, int q);
-int pipe_filename_c(int q);
-void send_file_c(char* type, char* param , char* ip_address, int port,int q);
-int client_main_test(int argc, char *argv[], int q);
-void checksum_c(const char *filename,int q);
+void checksum_c(const char *filename);
+int ipv4_tcp_c(char* ip_address , int port);
+int ipv4_udp_c(char* ip_address, int port);
+int ipv6_tcp_c(char* ip_address, int port);
+// int ipv6_udp_c(int port);
+int ipv6_udp_c(char *ip_address, int port);
+int uds_stream_c();
+int uds_dgram_c();
+int mmap_filename_c(char *ip_address, int port);
+int pipe_filename_c();
+void send_file_c(char* type, char* param , char* ip_address, int port);
+int client_main_test(int argc, char *argv[]);
