@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
     }
     else if(strcmp(argv[1], "-s") == 0)
     {
-        if(argc >= 4 && strcmp(argv[3], "-p")==0)
+        if(argc >= 5 && strcmp(argv[3], "-p")==0)
         {
             server_main_test(argc, argv);
         }

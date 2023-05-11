@@ -6,33 +6,6 @@ void error_c(const char *msg)
     exit(1);
 }
 
-void checksum_c(const char *filename)
-{
-    FILE *file;
-    char buffer[BUFFER_SIZE];
-    size_t bytes_read;
-    unsigned long long sum = 0;
-
-    file = fopen(filename, "rb");
-    if (file == NULL)
-    {
-        printf("Failed to open the file.\n");
-        return;
-    }
-
-    while ((bytes_read = fread(buffer, sizeof(char), BUFFER_SIZE, file)) != 0)
-    {
-        for (size_t i = 0; i < bytes_read; i++)
-        {
-            sum += buffer[i];
-        }
-    }
-
-    printf("checksum = %llu\n", sum);
-
-    fclose(file);
-}
-
 int ipv4_tcp_c(char *ip_address, int port)
 {
     printf("ipv4_tcp,");
@@ -98,6 +71,7 @@ int ipv4_tcp_c(char *ip_address, int port)
     return 0;
 }
 
+
 int ipv4_udp_c(char *ip_address, int port)
 {
     printf("ipv4_udp,");
@@ -162,6 +136,7 @@ int ipv4_udp_c(char *ip_address, int port)
     return 0;
 }
 
+
 int ipv6_udp_c(char *ip_address, int port)
 {
     printf("ipv6_udp,");
@@ -191,7 +166,7 @@ int ipv6_udp_c(char *ip_address, int port)
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin6_family = AF_INET6;
     serv_addr.sin6_port = htons(port);
-    if (inet_pton(AF_INET6, ip_address, &serv_addr.sin6_addr) <= 0)
+    if (inet_pton(AF_INET6, ip_address, &serv_addr.sin6_addr) <= 0) 
     // if (inet_pton(AF_INET6, SERVER_IP_6_C, &serv_addr.sin6_addr) <= 0)
     {
         perror("inet_pton");
@@ -226,6 +201,7 @@ int ipv6_udp_c(char *ip_address, int port)
     return 0;
 }
 
+
 int ipv6_tcp_c(char *ip_address, int port)
 {
     printf("ipv6_tcp,");
@@ -255,7 +231,7 @@ int ipv6_tcp_c(char *ip_address, int port)
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin6_family = AF_INET6;
     serv_addr.sin6_port = htons(port);
-    // if (inet_pton(AF_INET6, ip_address, &serv_addr.sin6_addr) <= 0)
+    // if (inet_pton(AF_INET6, ip_address, &serv_addr.sin6_addr) <= 0) 
     if (inet_pton(AF_INET6, SERVER_IP_6_C, &serv_addr.sin6_addr) <= 0)
     {
         perror("inet_pton");
@@ -292,7 +268,80 @@ int ipv6_tcp_c(char *ip_address, int port)
 
     return 0;
 }
+/*
+int ipv6_udp_c(int port)
+{
+    printf("ipv6_udp,");
+    struct timeval start, end;
 
+    int sockfd, filefd, nbytes, n_sent;
+    struct sockaddr_in6 serv_addr;
+    char buffer[BUFFER_SIZE_C];
+
+    // Open the file for reading
+    filefd = open("file.txt", O_RDONLY);
+    if (filefd < 0)
+    {
+        perror("open");
+        exit(EXIT_FAILURE);
+    }
+
+    // Create a socket for the client
+    sockfd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+    if (sockfd < 0)
+    {
+        perror("socket");
+        exit(EXIT_FAILURE);
+    }
+
+    // Set up the server address
+    memset(&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin6_family = AF_INET6;
+    serv_addr.sin6_port = htons(port);
+    if (inet_pton(AF_INET6, ip_address, &serv_addr.sin6_addr) <= 0)
+    // if (inet_pton(AF_INET6, SERVER_IP_6_C, &serv_addr.sin6_addr) <= 0)
+    {
+        perror("inet_pton");
+        exit(EXIT_FAILURE);
+    }
+
+    gettimeofday(&start, NULL); // get start time before send
+
+    // Read from the file and send to the server
+    while ((nbytes = read(filefd, buffer, sizeof(buffer))) > 0)
+    {
+        n_sent = sendto(sockfd, buffer, nbytes, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+        if (n_sent < 0)
+        {
+            perror("sendto");
+            exit(EXIT_FAILURE);
+        }
+        else if (n_sent != nbytes)
+        {
+            fprintf(stderr, "sendto: Sent %d bytes instead of %d bytes\n", n_sent, nbytes);
+        }
+    }
+
+    gettimeofday(&end, NULL); // get end time after finish to send
+
+    // Close the file and socket
+    if (close(filefd) < 0)
+    {
+        perror("close");
+        exit(EXIT_FAILURE);
+    }
+    if (close(sockfd) < 0)
+    {
+        perror("close");
+        exit(EXIT_FAILURE);
+    }
+    long seconds = end.tv_sec - start.tv_sec;
+    long useconds = end.tv_usec - start.tv_usec;
+    double elapsed = seconds * 1000.0 + useconds / 1000.0;
+    printf("%.2f\n", elapsed); // ms
+    return 0;
+}
+*/
 int uds_stream_c()
 {
     printf("uds_stream,");
@@ -435,6 +484,146 @@ int uds_dgram_c()
 
     return 0;
 }
+/*
+int mmap_filename_c(int port){
+    printf("mmap_filename,");
+    struct timeval start, end;
+
+    int sockfd, n;
+    struct sockaddr_in serv_addr;
+    const char *filename = "file.txt";
+    int fd;
+    struct stat filestat;
+    char *filedata;
+
+    // Open file
+    fd = open(filename, O_RDONLY);
+    if (fd < 0) {
+        error_c("Error opening file.");
+    }
+
+    // Get file size
+    if (fstat(fd, &filestat) < 0) {
+        error_c("Error getting file size.");
+    }
+
+    // Map the file into memory
+    // filedata = mmap(0, filestat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    filedata = mmap(0, 100 * 1024 * 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+    if (filedata == MAP_FAILED) {
+        error_c("Error mapping file into memory.");
+    }
+
+    // Create socket
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        error_c("Error opening socket.");
+    }
+
+    // Set server address
+    memset((char *)&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(port);
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
+
+    gettimeofday(&start, NULL); // get start time before start to send
+
+    // Send file data to server
+    n = sendto(sockfd, filedata, filestat.st_size, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+    if (n < 0) {
+        error_c("Error sending data.");
+    }
+
+    gettimeofday(&end, NULL); // get end time after finish to send
+
+    // Close file and socket
+    close(fd);
+    close(sockfd);
+
+    // Unmap the file from memory
+    if (munmap(filedata, filestat.st_size) < 0) {
+        error_c("Error unmapping file.");
+    }
+    long seconds = end.tv_sec - start.tv_sec;
+    long useconds = end.tv_usec - start.tv_usec;
+    double elapsed = seconds * 1000.0 + useconds / 1000.0;
+    printf("%.2f\n", elapsed);
+
+    return 0;
+}
+
+
+int mmap_filename_c(int port)
+{
+    // Open the file
+    int fd = open("file.txt", O_RDONLY);
+    if (fd == -1)
+    {
+        perror("Error opening file");
+        exit(1);
+    }
+
+    // Get the file size
+    off_t file_size = lseek(fd, 0, SEEK_END);
+    if (file_size == (off_t)-1) {
+        perror("Error getting file size");
+        exit(1);
+    }
+
+    // Map the file into memory
+    void *data = mmap(NULL, file_size, PROT_READ, MAP_SHARED, fd, 0);
+    if (data == MAP_FAILED)
+    {
+        perror("Error mapping file to memory");
+        exit(1);
+    }
+
+    // Create a socket and connect to the server
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1)
+    {
+        perror("Error creating socket");
+        exit(1);
+    }
+
+    struct sockaddr_in serv_addr;
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(8082);
+    if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)<=0)
+    {
+        perror("Invalid address/ Address not supported");
+        exit(1);
+    }
+
+    if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1)
+    {
+        perror("Error connecting to server");
+        exit(1);
+    }
+
+    // Send the mapped memory region to the server
+    if (send(sockfd, &file_size, sizeof(file_size), 0) == -1) {
+        perror("Error sending file size to server");
+        exit(1);
+    }
+
+    if (send(sockfd, data, file_size, 0) == -1) {
+        perror("Error sending data to server");
+        exit(1);
+    }
+
+    // Clean up
+    close(sockfd);
+    if (munmap(data, file_size) == -1) {
+        perror("Error unmapping memory");
+        exit(1);
+    }
+    close(fd);
+
+    return 0;
+}
+*/
 
 int mmap_filename_c(char *ip_address, int port)
 {
@@ -499,84 +688,7 @@ int mmap_filename_c(char *ip_address, int port)
     close(sockfd);
     return 0;
 }
-/*
-int mmap_filename_c(char *ip_address, int port)
-{
-    // Open the file for reading
-    int fd = open("file.txt", O_RDONLY);
-    if (fd == -1)
-    {
-        perror("open");
-        exit(EXIT_FAILURE);
-    }
 
-    // Get the size of the file
-    struct stat sb;
-    if (fstat(fd, &sb) == -1)
-    {
-        perror("fstat");
-        exit(EXIT_FAILURE);
-    }
-    off_t file_size = sb.st_size;
-
-    // Create a shared memory object
-    int shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
-    if (shm_fd == -1)
-    {
-        perror("shm_open");
-        exit(EXIT_FAILURE);
-    }
-
-    // Resize the shared memory object to match the size of the file
-    if (ftruncate(shm_fd, file_size) == -1)
-    {
-        perror("ftruncate");
-        exit(EXIT_FAILURE);
-    }
-
-    // Map the shared memory object into the address space of the calling process
-    void *addr = mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-    if (addr == MAP_FAILED)
-    {
-        perror("mmap");
-        exit(EXIT_FAILURE);
-    }
-
-    // Copy the contents of the file into the shared memory object
-    ssize_t bytes_read = read(fd, addr, file_size);
-    if (bytes_read == -1)
-    {
-        perror("read");
-        exit(EXIT_FAILURE);
-    }
-    else if (bytes_read != file_size)
-    {
-        fprintf(stderr, "Error: read %ld bytes, expected %ld bytes\n", bytes_read, file_size);
-        exit(EXIT_FAILURE);
-    }
-
-    // Unmap the shared memory object
-    if (munmap(addr, file_size) == -1)
-    {
-        perror("munmap");
-        exit(EXIT_FAILURE);
-    }
-
-    // Close the file and the shared memory object
-    if (close(fd) == -1)
-    {
-        perror("close");
-        exit(EXIT_FAILURE);
-    }
-    if (close(shm_fd) == -1)
-    {
-        perror("close");
-        exit(EXIT_FAILURE);
-    }
-
-    return 0;
-}
-*/
 int pipe_filename_c()
 {
     printf("pipe_filename,");
@@ -686,7 +798,6 @@ int client_main_test(int argc, char *argv[])
     // printf("IP adress: %s\n", ip_address);
     port = atoi(argv[3]);
     // printf("Port: %d\n", port);
-    
 
     // Set up server address
     struct sockaddr_in serv_addr;
@@ -720,7 +831,6 @@ int client_main_test(int argc, char *argv[])
 
     // Close socket
     close(sockfd);
-
     sleep(1);
 
     send_file(type, param, ip_address, port);

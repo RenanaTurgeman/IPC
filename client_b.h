@@ -22,13 +22,12 @@
 
 #define FIFO_NAME_C "myfifo"
 #define SERVER_IP_6_C "::1"
+// #define SERVER_IP_6_C "2001:db8::1"
 #define BUFFER_SIZE_C 1024
 #define SOCK_PATH_C "echo_socket"
-#define SHM_NAME "/my_shm"
-#define BUFFER_SIZE 1024
+
 
 void error(const char *msg);
-void checksum_c(const char *filename);
 int ipv4_tcp_c(char* ip_address , int port);
 int ipv4_udp_c(char* ip_address, int port);
 int ipv6_tcp_c(char* ip_address, int port);
